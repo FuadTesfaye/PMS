@@ -21,6 +21,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { addMedicineAction, updateMedicineAction, deleteMedicineAction } from '@/app/actions/medicines';
 import { upsertPharmacyScoreAction, updateComplianceRecordAction } from '@/app/actions/compliance';
 import { savePharmacySettingAction, saveSystemSettingAction } from '@/app/actions/settings';
+import { createPartnerApiClientAction, togglePartnerApiClientAction } from '@/app/actions/partners';
 import Image from "next/image";
 
 interface AdminDashboardProps {
@@ -52,6 +53,7 @@ interface AdminDashboardProps {
   }>;
   pharmacies: Array<{ id: string; name: string }>;
   systemSettings: Array<{ id: string; key: string; value: string; description: string }>;
+  apiClients: Array<{ id: string; name: string; scopes: string; isActive: boolean; createdAt: Date; lastUsedAt: Date | null }>;
 }
 
 export default function AdminDashboardClient({
@@ -62,6 +64,7 @@ export default function AdminDashboardClient({
   pharmacyScores,
   pharmacies,
   systemSettings,
+  apiClients,
 }: AdminDashboardProps) {
   const [medicines, setMedicines] = useState<Medicine[]>(initialMedicines);
   const [orders] = useState<Order[]>(initialOrders);
@@ -180,6 +183,20 @@ export default function AdminDashboardClient({
 
   const handlePharmacySettingSubmit = async (formData: FormData) => {
     await savePharmacySettingAction(formData);
+    window.location.reload();
+  };
+  const [newApiKey, setNewApiKey] = useState<string | null>(null);
+
+  const handleCreateApiClient = async (formData: FormData) => {
+    const result = await createPartnerApiClientAction(formData);
+    if ("apiKey" in result && result.apiKey) {
+      setNewApiKey(result.apiKey);
+    }
+    window.location.reload();
+  };
+
+  const handleToggleApiClient = async (formData: FormData) => {
+    await togglePartnerApiClientAction(formData);
     window.location.reload();
   };
 
@@ -455,6 +472,34 @@ export default function AdminDashboardClient({
                   Save Pharmacy Override
                 </button>
               </form>
+            </div>
+
+            <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6">
+              <h3 className="text-lg font-black mb-4">Partner API Clients</h3>
+              <form action={handleCreateApiClient} className="space-y-2 mb-4">
+                <input name="name" placeholder="Client name" className="w-full border rounded px-2 py-2 text-sm" required />
+                <input name="scopes" placeholder="Scopes (comma separated or *)" defaultValue="*" className="w-full border rounded px-2 py-2 text-sm" required />
+                <button className="w-full bg-slate-900 text-white rounded py-2 text-sm font-bold">Create API Client</button>
+              </form>
+              {newApiKey && (
+                <div className="p-2 rounded bg-amber-50 border border-amber-200 text-xs mb-3">
+                  New key (copy now): <span className="font-mono">{newApiKey}</span>
+                </div>
+              )}
+              <div className="space-y-2">
+                {apiClients.map((c) => (
+                  <form key={c.id} action={handleToggleApiClient} className="border rounded-lg p-2 text-xs">
+                    <input type="hidden" name="id" value={c.id} />
+                    <input type="hidden" name="active" value={String(!c.isActive)} />
+                    <p className="font-semibold">{c.name}</p>
+                    <p className="text-slate-500">Scopes: {c.scopes}</p>
+                    <p className="text-slate-500">Last used: {c.lastUsedAt ? new Date(c.lastUsedAt).toLocaleString() : "never"}</p>
+                    <button className={cn("mt-1 font-bold", c.isActive ? "text-rose-600" : "text-emerald-600")}>
+                      {c.isActive ? "Disable" : "Enable"}
+                    </button>
+                  </form>
+                ))}
+              </div>
             </div>
           </div>
         </div>

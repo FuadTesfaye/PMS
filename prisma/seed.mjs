@@ -5,7 +5,7 @@ import { createHash } from "crypto";
 const prisma = new PrismaClient();
 
 async function main() {
-  const [pharmacyA] = await Promise.all([
+  const [pharmacyA, pharmacyB] = await Promise.all([
     prisma.pharmacy.upsert({
       where: { id: "pharmacy-hq-1" },
       update: {},
@@ -43,6 +43,17 @@ async function main() {
       },
     }),
     prisma.user.upsert({
+      where: { email: "pharmacy2@example.com" },
+      update: {},
+      create: {
+        name: "Pharmacy User 2",
+        email: "pharmacy2@example.com",
+        password,
+        role: "pharmacy",
+        pharmacyId: pharmacyB.id,
+      },
+    }),
+    prisma.user.upsert({
       where: { email: "pharmacist@example.com" },
       update: {},
       create: {
@@ -51,6 +62,17 @@ async function main() {
         password,
         role: "pharmacist",
         pharmacyId: pharmacyA.id,
+      },
+    }),
+    prisma.user.upsert({
+      where: { email: "pharmacist2@example.com" },
+      update: {},
+      create: {
+        name: "Pharmacist User 2",
+        email: "pharmacist2@example.com",
+        password,
+        role: "pharmacist",
+        pharmacyId: pharmacyB.id,
       },
     }),
     prisma.user.upsert({
@@ -122,16 +144,37 @@ async function main() {
   ];
 
   for (const med of medicines) {
-    const medicine = await prisma.medicine.create({ data: med });
-    await prisma.complianceRecord.create({
-      data: {
-        medicineId: medicine.id,
-        status: "valid",
-        expiryDate: medicine.expiryDate,
-        registrationStatus: "registered",
-        notes: "Seed compliance record",
-      },
+    const existing = await prisma.medicine.findFirst({
+      where: { batchNumber: med.batchNumber },
     });
+    const medicine = existing
+      ? await prisma.medicine.update({ where: { id: existing.id }, data: med })
+      : await prisma.medicine.create({ data: med });
+
+    const complianceExisting = await prisma.complianceRecord.findFirst({
+      where: { medicineId: medicine.id },
+    });
+    if (complianceExisting) {
+      await prisma.complianceRecord.update({
+        where: { id: complianceExisting.id },
+        data: {
+          status: "valid",
+          expiryDate: medicine.expiryDate,
+          registrationStatus: "registered",
+          notes: "Seed compliance record",
+        },
+      });
+    } else {
+      await prisma.complianceRecord.create({
+        data: {
+          medicineId: medicine.id,
+          status: "valid",
+          expiryDate: medicine.expiryDate,
+          registrationStatus: "registered",
+          notes: "Seed compliance record",
+        },
+      });
+    }
   }
 
   await prisma.pharmacyScore.upsert({
@@ -181,6 +224,59 @@ async function main() {
     update: { name: "ZPIN Partner Demo", scopes: "*", isActive: true },
     create: { name: "ZPIN Partner Demo", keyHash, scopes: "*", isActive: true },
   });
+
+  // Realistic volume seeding for dashboard analytics.
+  const existingOrders = await prisma.order.count();
+  if (existingOrders < 120) {
+    const pharmacyUsers = await prisma.user.findMany({
+      where: { role: "pharmacy", pharmacyId: { not: null } },
+      select: { id: true, pharmacyId: true },
+    });
+    const medRows = await prisma.medicine.findMany({
+      select: { id: true, price: true, requiresPrescription: true },
+    });
+    const statuses = ["pending", "reviewing", "approved", "ready", "completed", "rejected"];
+
+    for (let i = 0; i < 140; i += 1) {
+      const user = pharmacyUsers[i % pharmacyUsers.length];
+      const status = statuses[i % statuses.length];
+      const createdAt = new Date(Date.now() - (140 - i) * 24 * 60 * 60 * 1000);
+
+      const selected = [medRows[i % medRows.length], medRows[(i + 1) % medRows.length]];
+      const items = selected.map((m, idx) => ({
+        medicineId: m.id,
+        quantity: (i + idx) % 4 + 1,
+        price: m.price,
+      }));
+      const total = items.reduce((sum, item) => sum + Number(item.price) * item.quantity, 0);
+
+      const order = await prisma.order.create({
+        data: {
+          pharmacyId: user.pharmacyId,
+          userId: user.id,
+          status,
+          total,
+          createdAt,
+          updatedAt: createdAt,
+          items: { create: items },
+        },
+      });
+
+      if (selected.some((m) => m.requiresPrescription)) {
+        await prisma.prescription.create({
+          data: {
+            orderId: order.id,
+            imageUrl:
+              "https://images.unsplash.com/photo-1585435557343-3b092031a831?q=80&w=800&auto=format&fit=crop",
+            status: status === "rejected" ? "rejected" : status === "approved" || status === "completed" ? "approved" : "pending",
+            extractedText: status === "rejected" ? "Dose mismatch detected in pharmacist review." : "Prescription reviewed.",
+            createdAt,
+            updatedAt: createdAt,
+          },
+        });
+      }
+    }
+  }
 }
 
 main()

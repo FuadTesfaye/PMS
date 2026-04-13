@@ -273,7 +273,7 @@ export async function getDistributorInsights(options?: { days?: number; supplier
   const medicineWhere = supplier ? { supplier } : undefined;
   const orderDateWhere = { gte: startDate };
 
-  const [totalPharmacies, totalOrders, topMedicines, lowStockAlerts, pharmacyDemand, prescriptionItems] = await Promise.all([
+  const [totalPharmacies, totalOrders, topMedicines, lowStockAlerts, pharmacyDemand, prescriptionItems, orderSeries] = await Promise.all([
     prisma.pharmacy.count(),
     prisma.order.count({ where: { createdAt: orderDateWhere } }),
     prisma.orderItem.groupBy({
@@ -305,6 +305,11 @@ export async function getDistributorInsights(options?: { days?: number; supplier
         medicine: medicineWhere,
       },
       select: { medicineId: true, quantity: true },
+    }),
+    prisma.order.findMany({
+      where: { createdAt: orderDateWhere },
+      select: { createdAt: true, total: true },
+      orderBy: { createdAt: "asc" },
     }),
   ]);
 
@@ -343,6 +348,20 @@ export async function getDistributorInsights(options?: { days?: number; supplier
     urgency: m.stock < 5 ? "critical" : "high",
   }));
 
+  const trendMap = new Map<string, { orders: number; revenue: number }>();
+  for (const row of orderSeries) {
+    const key = row.createdAt.toISOString().slice(0, 10);
+    const current = trendMap.get(key) ?? { orders: 0, revenue: 0 };
+    current.orders += 1;
+    current.revenue += Number(row.total);
+    trendMap.set(key, current);
+  }
+  const orderTrend = Array.from(trendMap.entries()).map(([date, v]) => ({
+    date,
+    orders: v.orders,
+    revenue: v.revenue,
+  }));
+
   return {
     windowDays: days,
     supplierFilter: supplier ?? "all",
@@ -370,6 +389,7 @@ export async function getDistributorInsights(options?: { days?: number; supplier
     })),
     prescriptionTrends: rxTop,
     restockRecommendations: recommendations,
+    orderTrend,
   };
 }
 
@@ -582,6 +602,30 @@ export async function touchApiClientUsage(id: string) {
   return prisma.apiClient.update({
     where: { id },
     data: { lastUsedAt: new Date() },
+  });
+}
+
+export async function getApiClients() {
+  return prisma.apiClient.findMany({
+    orderBy: { createdAt: "desc" },
+  });
+}
+
+export async function createApiClient(params: { name: string; keyHash: string; scopes: string }) {
+  return prisma.apiClient.create({
+    data: {
+      name: params.name,
+      keyHash: params.keyHash,
+      scopes: params.scopes,
+      isActive: true,
+    },
+  });
+}
+
+export async function setApiClientActive(id: string, isActive: boolean) {
+  return prisma.apiClient.update({
+    where: { id },
+    data: { isActive },
   });
 }
 

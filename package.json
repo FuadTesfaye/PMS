@@ -9,7 +9,9 @@
     "lint": "eslint",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
-    "db:seed": "node prisma/seed.mjs"
+    "db:migrate:deploy": "prisma migrate deploy",
+    "db:seed": "node prisma/seed.mjs",
+    "test:smoke": "node scripts/smoke.mjs"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.7.0",

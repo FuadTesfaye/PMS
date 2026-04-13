@@ -17,6 +17,7 @@ Run:
 ```bash
 npm run db:generate
 npm run db:migrate -- --name init_zpin_enterprise
+npm run db:migrate:deploy
 npm run db:seed
 ```
 
@@ -67,6 +68,8 @@ Versioned paths:
 - `/api/v1/distributor/kpis`
 - `/api/v1/distributor/alerts`
 - `/api/v1/distributor/restock-recommendations`
+- `/api/v1/distributor/top-medicines`
+- `/api/v1/distributor/low-stock-alerts`
 
 ## 6. API Key Rotation Procedure
 
@@ -84,3 +87,27 @@ Global thresholds are managed by admin UI:
 - `threshold.compliance_expiry_days`
 
 Per-pharmacy overrides can be configured in admin dashboard "Per-Pharmacy Overrides".
+
+## 8. Partner Client Management
+
+Admin dashboard includes "Partner API Clients":
+
+- create new partner clients
+- set scopes (`*` for full access or comma-separated scopes)
+- enable/disable existing keys
+
+New keys are shown once on creation and should be stored by partner securely.
+
+## 9. Smoke Verification
+
+With app running locally:
+
+```bash
+npm run test:smoke
+```
+
+Optional base URL:
+
+```bash
+SMOKE_BASE_URL=https://staging.your-domain npm run test:smoke
+```

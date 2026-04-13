@@ -19,6 +19,7 @@ interface DistributorDashboardClientProps {
       recommendedRestockQty: number;
       urgency: string;
     }>;
+    orderTrend: Array<{ date: string; orders: number; revenue: number }>;
     windowDays: number;
     supplierFilter: string;
   };
@@ -67,6 +68,7 @@ export default function DistributorDashboardClient({
     [insights.topMedicines, supplierFilter]
   );
   const [windowDays, setWindowDays] = useState(String(insights.windowDays));
+  const maxTrend = Math.max(1, ...insights.orderTrend.map((p) => p.orders));
 
   async function generateAlerts() {
     setIsGenerating(true);
@@ -217,6 +219,23 @@ export default function DistributorDashboardClient({
               <div key={r.medicineId} className="flex justify-between border-b pb-1">
                 <span>{r.name} ({r.supplier})</span>
                 <span className="font-bold">+{r.recommendedRestockQty}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="rounded-2xl border bg-white p-5">
+          <h2 className="font-bold mb-3">Order trend ({insights.windowDays}d)</h2>
+          <div className="space-y-2">
+            {insights.orderTrend.slice(-12).map((point) => (
+              <div key={point.date} className="grid grid-cols-[70px_1fr_40px] items-center gap-2 text-xs">
+                <span className="text-slate-500">{point.date.slice(5)}</span>
+                <div className="h-2 bg-slate-100 rounded">
+                  <div
+                    className="h-2 bg-emerald-500 rounded"
+                    style={{ width: `${Math.max(5, (point.orders / maxTrend) * 100)}%` }}
+                  />
+                </div>
+                <span className="font-bold text-right">{point.orders}</span>
               </div>
             ))}
           </div>

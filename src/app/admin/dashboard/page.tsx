@@ -1,4 +1,4 @@
-import { getMedicines, getOrders, getStatistics, getComplianceRecords, getPharmacyScores, getPharmacies, getSystemSettings } from '@/lib/store';
+import { getMedicines, getOrders, getStatistics, getComplianceRecords, getPharmacyScores, getPharmacies, getSystemSettings, getApiClients } from '@/lib/store';
 import { getSession } from '@/lib/auth';
 import AdminDashboardClient from './AdminDashboardClient';
 import DashboardLayout from '@/components/DashboardLayout';
@@ -16,7 +16,7 @@ export default async function AdminDashboardPage() {
     redirect('/login');
   }
 
-  const [medicines, orders, stats, complianceRecords, pharmacyScores, pharmacies, systemSettings] = await Promise.all([
+  const [medicines, orders, stats, complianceRecords, pharmacyScores, pharmacies, systemSettings, apiClients] = await Promise.all([
     getMedicines(),
     getOrders(),
     getStatistics(),
@@ -24,6 +24,7 @@ export default async function AdminDashboardPage() {
     getPharmacyScores(),
     getPharmacies(),
     getSystemSettings(),
+    getApiClients(),
   ]);
 
   return (
@@ -36,6 +37,7 @@ export default async function AdminDashboardPage() {
         pharmacyScores={pharmacyScores}
         pharmacies={pharmacies}
         systemSettings={systemSettings}
+        apiClients={apiClients}
       />
     </DashboardLayout>
   );
