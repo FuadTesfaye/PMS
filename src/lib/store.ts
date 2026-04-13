@@ -265,7 +265,7 @@ export async function deleteMedicine(id: string) {
 }
 
 export async function getDistributorInsights() {
-  const [totalPharmacies, totalOrders, topMedicines, lowStockAlerts] = await Promise.all([
+  const [totalPharmacies, totalOrders, topMedicines, lowStockAlerts, pharmacyDemand, prescriptionItems] = await Promise.all([
     prisma.pharmacy.count(),
     prisma.order.count(),
     prisma.orderItem.groupBy({
@@ -279,6 +279,17 @@ export async function getDistributorInsights() {
       take: 10,
       orderBy: { stock: "asc" },
     }),
+    prisma.order.groupBy({
+      by: ["pharmacyId"],
+      _count: { id: true },
+      _sum: { total: true },
+      orderBy: { _count: { id: "desc" } },
+      take: 10,
+    }),
+    prisma.orderItem.findMany({
+      where: { order: { prescription: { isNot: null } } },
+      select: { medicineId: true, quantity: true },
+    }),
   ]);
 
   const medicineIds = topMedicines.map((m) => m.medicineId);
@@ -287,6 +298,25 @@ export async function getDistributorInsights() {
     select: { id: true, name: true, supplier: true },
   });
   const medicineMap = new Map(names.map((m) => [m.id, m]));
+  const pharmacyIds = pharmacyDemand.map((p) => p.pharmacyId);
+  const pharmacyNames = await prisma.pharmacy.findMany({
+    where: { id: { in: pharmacyIds } },
+    select: { id: true, name: true, location: true },
+  });
+  const pharmacyMap = new Map(pharmacyNames.map((p) => [p.id, p]));
+
+  const rxQuantities = new Map<string, number>();
+  for (const row of prescriptionItems) {
+    rxQuantities.set(row.medicineId, (rxQuantities.get(row.medicineId) ?? 0) + row.quantity);
+  }
+  const rxTop = Array.from(rxQuantities.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([medicineId, quantity]) => ({
+      medicineId,
+      name: medicineMap.get(medicineId)?.name ?? "Unknown",
+      quantity,
+    }));
 
   return {
     totalPharmacies,
@@ -304,6 +334,14 @@ export async function getDistributorInsights() {
       supplier: m.supplier,
       predicted: m.stock < 5 ? "high" : "medium",
     })),
+    highDemandAreas: pharmacyDemand.map((p) => ({
+      pharmacyId: p.pharmacyId,
+      pharmacyName: pharmacyMap.get(p.pharmacyId)?.name ?? "Unknown",
+      location: pharmacyMap.get(p.pharmacyId)?.location ?? "Unknown",
+      orderCount: p._count.id,
+      totalValue: Number(p._sum.total ?? 0),
+    })),
+    prescriptionTrends: rxTop,
   };
 }
 
@@ -333,5 +371,54 @@ export async function getComplianceRecords() {
   return prisma.complianceRecord.findMany({
     include: { medicine: true },
     orderBy: { updatedAt: "desc" },
+  });
+}
+
+export async function updateComplianceRecord(
+  id: string,
+  data: { status: string; registrationStatus: string; notes: string; expiryDate: string }
+) {
+  return prisma.complianceRecord.update({
+    where: { id },
+    data: {
+      status: data.status,
+      registrationStatus: data.registrationStatus,
+      notes: data.notes,
+      expiryDate: new Date(data.expiryDate),
+    },
+    include: { medicine: true },
+  });
+}
+
+export async function getPharmacyScores() {
+  return prisma.pharmacyScore.findMany({
+    include: { pharmacy: true },
+    orderBy: { lastUpdated: "desc" },
+  });
+}
+
+export async function upsertPharmacyScore(params: {
+  pharmacyId: string;
+  score: number;
+  riskLevel: "low" | "medium" | "high";
+}) {
+  const existing = await prisma.pharmacyScore.findFirst({
+    where: { pharmacyId: params.pharmacyId },
+    orderBy: { lastUpdated: "desc" },
+  });
+  if (existing) {
+    return prisma.pharmacyScore.update({
+      where: { id: existing.id },
+      data: { score: params.score, riskLevel: params.riskLevel, lastUpdated: new Date() },
+      include: { pharmacy: true },
+    });
+  }
+  return prisma.pharmacyScore.create({
+    data: {
+      pharmacyId: params.pharmacyId,
+      score: params.score,
+      riskLevel: params.riskLevel,
+    },
+    include: { pharmacy: true },
   });
 }

@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 async function main() {
-  const [pharmacyA, pharmacyB] = await Promise.all([
+  const [pharmacyA] = await Promise.all([
     prisma.pharmacy.upsert({
       where: { id: "pharmacy-hq-1" },
       update: {},

@@ -7,12 +7,9 @@ import {
   ClipboardList, 
   CheckCircle2, 
   XCircle, 
-  Clock, 
   Package, 
-  Truck, 
   AlertCircle, 
   Eye, 
-  ChevronRight,
   User as UserIcon,
   ShoppingBag
 } from 'lucide-react';

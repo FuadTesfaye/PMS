@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import { Medicine, OrderItem } from '@/types';
 import { ShoppingBag, X, Plus, Minus, Trash2, ArrowRight, ShieldCheck } from 'lucide-react';
-import { cn, formatCurrency } from '@/lib/utils';
-import { motion, AnimatePresence } from 'framer-motion';
+import { formatCurrency } from '@/lib/utils';
+import { motion } from 'framer-motion';
 import PrescriptionUpload from './PrescriptionUpload';
 import { placeOrder } from '@/app/actions/orders';
 import { useRouter } from 'next/navigation';

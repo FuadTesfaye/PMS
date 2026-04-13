@@ -12,11 +12,8 @@ import {
   Edit2, 
   Trash2, 
   Download, 
-  MoreVertical,
-  CheckCircle2,
   X,
   Search,
-  Filter,
   Clock
 } from 'lucide-react';
 import { cn, formatCurrency } from '@/lib/utils';
@@ -37,7 +34,7 @@ interface AdminDashboardProps {
 
 export default function AdminDashboardClient({ initialMedicines, initialOrders, stats }: AdminDashboardProps) {
   const [medicines, setMedicines] = useState<Medicine[]>(initialMedicines);
-  const [orders, setOrders] = useState<Order[]>(initialOrders);
+  const [orders] = useState<Order[]>(initialOrders);
   const [isAddingMed, setIsAddingMed] = useState(false);
   const [editingMed, setEditingMed] = useState<Medicine | null>(null);
   const [searchQuery, setSearchQuery] = useState('');

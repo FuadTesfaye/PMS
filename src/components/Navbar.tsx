@@ -1,8 +1,7 @@
 'use client';
 
 import { logout } from '@/app/actions/auth';
-import { Pill, LogOut, Bell, User, Search, Menu } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Pill, LogOut, Bell, Search, Menu } from 'lucide-react';
 
 interface NavbarProps {
   userName: string;

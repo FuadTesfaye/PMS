@@ -7,7 +7,6 @@ import {
   CheckCircle2, 
   XCircle, 
   Package, 
-  ChevronRight, 
   Eye 
 } from 'lucide-react';
 

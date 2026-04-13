@@ -20,7 +20,7 @@ export default function LoginPage() {
         toast.error(result.error);
         setIsLoading(false);
       }
-    } catch (err) {
+    } catch {
       toast.error('Something went wrong. Please try again.');
       setIsLoading(false);
     }

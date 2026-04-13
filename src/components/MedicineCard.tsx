@@ -1,7 +1,7 @@
 'use client';
 
 import { Medicine } from '@/types';
-import { ShoppingCart, AlertCircle, Plus, Minus, Info } from 'lucide-react';
+import { ShoppingCart, AlertCircle, Plus } from 'lucide-react';
 import { cn, formatCurrency } from '@/lib/utils';
 import { motion } from 'framer-motion';
 

@@ -6,6 +6,8 @@ interface DistributorDashboardClientProps {
     totalOrders: number;
     topMedicines: Array<{ medicineId: string; name: string; supplier: string; quantity: number }>;
     lowStockAlerts: Array<{ id: string; name: string; stock: number; supplier: string; predicted: string }>;
+    highDemandAreas: Array<{ pharmacyId: string; pharmacyName: string; location: string; orderCount: number; totalValue: number }>;
+    prescriptionTrends: Array<{ medicineId: string; name: string; quantity: number }>;
   };
   pharmacies: Array<{ id: string; name: string; location: string; contact: string }>;
   reports: Array<{
@@ -27,7 +29,7 @@ export default function DistributorDashboardClient({ insights, pharmacies, repor
         <div className="rounded-2xl border bg-white p-5"><p className="text-xs text-slate-500">Low Stock Alerts</p><p className="text-3xl font-black">{insights.lowStockAlerts.length}</p></div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="rounded-2xl border bg-white p-5">
           <h2 className="font-bold mb-3">Trending drugs</h2>
           <div className="space-y-2">
@@ -72,6 +74,26 @@ export default function DistributorDashboardClient({ insights, pharmacies, repor
               <div key={r.id} className="border-b pb-2">
                 <p className="font-semibold">{r.pharmacy.name}</p>
                 <p className="text-slate-600">{r.stockObservation}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="rounded-2xl border bg-white p-5">
+          <h2 className="font-bold mb-3">Prescription intelligence trends</h2>
+          <div className="space-y-2 text-sm">
+            {insights.prescriptionTrends.map((r) => (
+              <div key={r.medicineId} className="flex justify-between">
+                <span>{r.name}</span>
+                <span className="font-bold">{r.quantity} Rx units</span>
+              </div>
+            ))}
+          </div>
+          <h3 className="font-semibold mt-5 mb-2">High demand pharmacies</h3>
+          <div className="space-y-2 text-sm">
+            {insights.highDemandAreas.slice(0, 4).map((h) => (
+              <div key={h.pharmacyId} className="flex justify-between">
+                <span>{h.pharmacyName} ({h.location})</span>
+                <span className="font-bold">{h.orderCount} orders</span>
               </div>
             ))}
           </div>
