@@ -1,36 +1,99 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Zion Pharma Intelligence Network (ZPIN)
 
-## Getting Started
+Real-time pharmaceutical visibility, intelligence, and control.
 
-First, run the development server:
+ZPIN is a distributed intelligence platform connecting pharmacies, pharmacists, distributor operations, admins, and field sales intelligence into one multi-tenant system.
+
+## Core Pillars
+
+- Network Layer (multi-pharmacy data aggregation)
+- Prescription Intelligence
+- Smart Distribution (alerts, restock recommendations)
+- Compliance and Risk
+- Field Intelligence
+
+## Tech Stack
+
+- Next.js 16 (App Router), React 19, TypeScript
+- Tailwind CSS 4, Framer Motion
+- PostgreSQL + Prisma
+- JWT role-based auth
+
+## Roles
+
+- `pharmacy`
+- `pharmacist`
+- `admin`
+- `distributor`
+- `sales_rep`
+
+## Quick Start
+
+1) Install dependencies
+
+```bash
+npm install
+```
+
+2) Configure environment
+
+```bash
+cp .env.example .env
+```
+
+3) Prepare database and seed
+
+```bash
+npm run db:generate
+npm run db:migrate:deploy
+npm run db:seed
+```
+
+4) Run app
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+5) Optional smoke check (with app running)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm run test:smoke
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Key Dashboards
 
-## Learn More
+- `/pharmacy/dashboard`
+- `/pharmacist/dashboard`
+- `/admin/dashboard`
+- `/distributor/dashboard`
+- `/sales-rep/dashboard`
 
-To learn more about Next.js, take a look at the following resources:
+## API Surface (selected)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `/api/distributor/*` internal/partner analytics routes
+- `/api/v1/distributor/*` versioned aliases
+- `/api/compliance/records`
+- `/api/risk/pharmacy-scores`
+- `/api/audit-trails`
+- `/api/internal/automation/run` (protected automation trigger)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Scripts
 
-## Deploy on Vercel
+- `npm run dev` - start dev server
+- `npm run build` - production build
+- `npm run start` - run built app
+- `npm run lint` - lint checks
+- `npm run db:generate` - generate Prisma client
+- `npm run db:migrate` - local dev migration
+- `npm run db:migrate:deploy` - apply migrations for deploy
+- `npm run db:seed` - seed demo/analytics data
+- `npm run test:smoke` - lightweight route smoke checks
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Operations
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+See `DEPLOYMENT.md` for:
+- environment and deployment runbook
+- automation scheduler configuration
+- partner API key model and rotation
+- threshold management guidance
