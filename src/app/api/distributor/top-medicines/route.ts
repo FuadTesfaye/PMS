@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
 import { getDistributorInsights } from "@/lib/store";
+import { authorizeInternalOrPartner } from "@/lib/partnerAuth";
 
 export async function GET(request: NextRequest) {
-  const session = await getSession();
-  if (!session || (session.role !== "distributor" && session.role !== "admin")) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const auth = await authorizeInternalOrPartner(request, "distributor:top-medicines:read");
+  if (!auth.ok) return NextResponse.json({ error: auth.reason }, { status: 401 });
 
   const url = new URL(request.url);
   const days = Number(url.searchParams.get("days") ?? "30");

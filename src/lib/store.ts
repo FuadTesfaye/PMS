@@ -511,6 +511,44 @@ export async function getAuditTrails(limit = 100) {
   });
 }
 
+export async function getSystemSettings() {
+  const settings = await prisma.systemSetting.findMany({ orderBy: { key: "asc" } });
+  return settings;
+}
+
+export async function upsertSystemSetting(params: {
+  key: string;
+  value: string;
+  description: string;
+}) {
+  return prisma.systemSetting.upsert({
+    where: { key: params.key },
+    update: { value: params.value, description: params.description },
+    create: params,
+  });
+}
+
+export async function getSystemSettingValue<T = string>(key: string, fallback: T): Promise<T> {
+  const setting = await prisma.systemSetting.findUnique({ where: { key } });
+  if (!setting) return fallback;
+  try {
+    return JSON.parse(setting.value) as T;
+  } catch {
+    return (setting.value as unknown as T) ?? fallback;
+  }
+}
+
+export async function getApiClientByHash(keyHash: string) {
+  return prisma.apiClient.findUnique({ where: { keyHash } });
+}
+
+export async function touchApiClientUsage(id: string) {
+  return prisma.apiClient.update({
+    where: { id },
+    data: { lastUsedAt: new Date() },
+  });
+}
+
 export async function updateComplianceRecord(
   id: string,
   data: { status: string; registrationStatus: string; notes: string; expiryDate: string }

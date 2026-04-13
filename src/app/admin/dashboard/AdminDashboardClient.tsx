@@ -20,6 +20,7 @@ import { cn, formatCurrency } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { addMedicineAction, updateMedicineAction, deleteMedicineAction } from '@/app/actions/medicines';
 import { upsertPharmacyScoreAction, updateComplianceRecordAction } from '@/app/actions/compliance';
+import { saveSystemSettingAction } from '@/app/actions/settings';
 import Image from "next/image";
 
 interface AdminDashboardProps {
@@ -50,6 +51,7 @@ interface AdminDashboardProps {
     pharmacy: { name: string };
   }>;
   pharmacies: Array<{ id: string; name: string }>;
+  systemSettings: Array<{ id: string; key: string; value: string; description: string }>;
 }
 
 export default function AdminDashboardClient({
@@ -59,6 +61,7 @@ export default function AdminDashboardClient({
   complianceRecords,
   pharmacyScores,
   pharmacies,
+  systemSettings,
 }: AdminDashboardProps) {
   const [medicines, setMedicines] = useState<Medicine[]>(initialMedicines);
   const [orders] = useState<Order[]>(initialOrders);
@@ -167,6 +170,11 @@ export default function AdminDashboardClient({
 
   const handleComplianceSubmit = async (formData: FormData) => {
     await updateComplianceRecordAction(formData);
+    window.location.reload();
+  };
+
+  const handleSettingSubmit = async (formData: FormData) => {
+    await saveSystemSettingAction(formData);
     window.location.reload();
   };
 
@@ -378,6 +386,34 @@ export default function AdminDashboardClient({
                     </span>
                   </div>
                 ))}
+              </div>
+            </div>
+
+            <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6">
+              <h3 className="text-lg font-black mb-4">Distribution Threshold Settings</h3>
+              <div className="space-y-2">
+                {[
+                  { key: "threshold.low_stock", value: "10", description: "Low stock alert threshold" },
+                  { key: "threshold.critical_stock", value: "5", description: "Critical stock alert threshold" },
+                  { key: "threshold.compliance_expiry_days", value: "30", description: "Days before expiry to alert" },
+                ].map((preset) => {
+                  const existing = systemSettings.find((s) => s.key === preset.key);
+                  return (
+                    <form key={preset.key} action={handleSettingSubmit} className="p-2 border rounded-lg">
+                      <input type="hidden" name="key" value={preset.key} />
+                      <input type="hidden" name="description" value={preset.description} />
+                      <p className="text-xs font-semibold">{preset.description}</p>
+                      <div className="mt-2 flex gap-2">
+                        <input
+                          name="value"
+                          defaultValue={existing?.value ?? preset.value}
+                          className="flex-1 border rounded px-2 py-1 text-sm"
+                        />
+                        <button className="text-xs font-bold bg-slate-900 text-white rounded px-2">Save</button>
+                      </div>
+                    </form>
+                  );
+                })}
               </div>
             </div>
           </div>

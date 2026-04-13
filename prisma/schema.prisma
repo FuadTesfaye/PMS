@@ -224,3 +224,22 @@ model AuditTrail {
   @@index([entityType, entityId, createdAt])
   @@index([actorUserId, createdAt])
 }
+
+model SystemSetting {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String
+  description String
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+}
+
+model ApiClient {
+  id          String   @id @default(cuid())
+  name        String
+  keyHash     String   @unique
+  scopes      String
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  lastUsedAt  DateTime?
+}

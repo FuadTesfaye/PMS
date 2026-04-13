@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { createHash } from "crypto";
 
 const prisma = new PrismaClient();
 
@@ -143,6 +144,42 @@ async function main() {
     where: { id: "score-pharmacy-hq-2" },
     update: { score: 61, riskLevel: "medium", pharmacyId: "pharmacy-hq-2" },
     create: { id: "score-pharmacy-hq-2", pharmacyId: "pharmacy-hq-2", score: 61, riskLevel: "medium" },
+  });
+
+  await prisma.systemSetting.upsert({
+    where: { key: "threshold.low_stock" },
+    update: { value: "10", description: "Low stock alert threshold" },
+    create: {
+      key: "threshold.low_stock",
+      value: "10",
+      description: "Low stock alert threshold",
+    },
+  });
+  await prisma.systemSetting.upsert({
+    where: { key: "threshold.critical_stock" },
+    update: { value: "5", description: "Critical stock alert threshold" },
+    create: {
+      key: "threshold.critical_stock",
+      value: "5",
+      description: "Critical stock alert threshold",
+    },
+  });
+  await prisma.systemSetting.upsert({
+    where: { key: "threshold.compliance_expiry_days" },
+    update: { value: "30", description: "Days before expiry to alert" },
+    create: {
+      key: "threshold.compliance_expiry_days",
+      value: "30",
+      description: "Days before expiry to alert",
+    },
+  });
+
+  const partnerKey = process.env.PARTNER_API_KEY || "zpin-partner-demo-key";
+  const keyHash = createHash("sha256").update(partnerKey).digest("hex");
+  await prisma.apiClient.upsert({
+    where: { keyHash },
+    update: { name: "ZPIN Partner Demo", scopes: "*", isActive: true },
+    create: { name: "ZPIN Partner Demo", keyHash, scopes: "*", isActive: true },
   });
 }
 

@@ -1,12 +1,10 @@
-import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
+import { NextRequest, NextResponse } from "next/server";
 import { getOpenAlerts } from "@/lib/store";
+import { authorizeInternalOrPartner } from "@/lib/partnerAuth";
 
-export async function GET() {
-  const session = await getSession();
-  if (!session || (session.role !== "distributor" && session.role !== "admin")) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+export async function GET(request: NextRequest) {
+  const auth = await authorizeInternalOrPartner(request, "distributor:alerts:read");
+  if (!auth.ok) return NextResponse.json({ error: auth.reason }, { status: 401 });
 
   const alerts = await getOpenAlerts();
   return NextResponse.json(alerts);
