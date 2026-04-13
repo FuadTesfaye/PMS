@@ -1,5 +1,8 @@
 'use client';
 
+import { useMemo, useState } from "react";
+import { generateAlertsAction, resolveAlertAction } from "@/app/actions/distribution";
+
 interface DistributorDashboardClientProps {
   insights: {
     totalPharmacies: number;
@@ -8,6 +11,14 @@ interface DistributorDashboardClientProps {
     lowStockAlerts: Array<{ id: string; name: string; stock: number; supplier: string; predicted: string }>;
     highDemandAreas: Array<{ pharmacyId: string; pharmacyName: string; location: string; orderCount: number; totalValue: number }>;
     prescriptionTrends: Array<{ medicineId: string; name: string; quantity: number }>;
+    restockRecommendations: Array<{
+      medicineId: string;
+      name: string;
+      supplier: string;
+      currentStock: number;
+      recommendedRestockQty: number;
+      urgency: string;
+    }>;
   };
   pharmacies: Array<{ id: string; name: string; location: string; contact: string }>;
   reports: Array<{
@@ -18,9 +29,54 @@ interface DistributorDashboardClientProps {
     createdAt: Date;
     pharmacy: { name: string };
   }>;
+  alerts: Array<{
+    id: string;
+    title: string;
+    message: string;
+    severity: "low" | "medium" | "high" | "critical";
+    pharmacy: { name: string; location: string };
+    medicine: { name: string; supplier: string } | null;
+  }>;
+  auditTrails: Array<{
+    id: string;
+    action: string;
+    entityType: string;
+    entityId: string;
+    createdAt: Date;
+    actor: { name: string; role: string };
+  }>;
 }
 
-export default function DistributorDashboardClient({ insights, pharmacies, reports }: DistributorDashboardClientProps) {
+export default function DistributorDashboardClient({
+  insights,
+  pharmacies,
+  reports,
+  alerts,
+  auditTrails,
+}: DistributorDashboardClientProps) {
+  const [supplierFilter, setSupplierFilter] = useState("all");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const suppliers = useMemo(
+    () => ["all", ...Array.from(new Set(insights.topMedicines.map((m) => m.supplier)))],
+    [insights.topMedicines]
+  );
+  const filteredTop = useMemo(
+    () => insights.topMedicines.filter((m) => supplierFilter === "all" || m.supplier === supplierFilter),
+    [insights.topMedicines, supplierFilter]
+  );
+
+  async function generateAlerts() {
+    setIsGenerating(true);
+    await generateAlertsAction();
+    setIsGenerating(false);
+    window.location.reload();
+  }
+
+  async function handleResolveAlert(formData: FormData) {
+    await resolveAlertAction(formData);
+    window.location.reload();
+  }
+
   return (
     <div className="space-y-8">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -31,9 +87,22 @@ export default function DistributorDashboardClient({ insights, pharmacies, repor
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="rounded-2xl border bg-white p-5">
-          <h2 className="font-bold mb-3">Trending drugs</h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-bold">Trending drugs</h2>
+            <select
+              value={supplierFilter}
+              onChange={(e) => setSupplierFilter(e.target.value)}
+              className="text-xs border rounded-lg px-2 py-1"
+            >
+              {suppliers.map((s) => (
+                <option key={s} value={s}>
+                  {s === "all" ? "All suppliers" : s}
+                </option>
+              ))}
+            </select>
+          </div>
           <div className="space-y-2">
-            {insights.topMedicines.map((m) => (
+            {filteredTop.map((m) => (
               <div key={m.medicineId} className="flex justify-between text-sm">
                 <span>{m.name} <span className="text-slate-400">({m.supplier})</span></span>
                 <span className="font-bold">{m.quantity}</span>
@@ -43,7 +112,16 @@ export default function DistributorDashboardClient({ insights, pharmacies, repor
         </div>
 
         <div className="rounded-2xl border bg-white p-5">
-          <h2 className="font-bold mb-3">Low stock prediction</h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-bold">Low stock prediction</h2>
+            <button
+              onClick={generateAlerts}
+              disabled={isGenerating}
+              className="text-xs font-bold bg-slate-900 text-white px-2 py-1 rounded-lg"
+            >
+              {isGenerating ? "Generating..." : "Generate alerts"}
+            </button>
+          </div>
           <div className="space-y-2">
             {insights.lowStockAlerts.map((m) => (
               <div key={m.id} className="flex justify-between text-sm">
@@ -94,6 +172,43 @@ export default function DistributorDashboardClient({ insights, pharmacies, repor
               <div key={h.pharmacyId} className="flex justify-between">
                 <span>{h.pharmacyName} ({h.location})</span>
                 <span className="font-bold">{h.orderCount} orders</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="rounded-2xl border bg-white p-5">
+          <h2 className="font-bold mb-3">Smart restock recommendations</h2>
+          <div className="space-y-2 text-sm">
+            {insights.restockRecommendations.map((r) => (
+              <div key={r.medicineId} className="flex justify-between border-b pb-1">
+                <span>{r.name} ({r.supplier})</span>
+                <span className="font-bold">+{r.recommendedRestockQty}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="rounded-2xl border bg-white p-5">
+          <h2 className="font-bold mb-3">Open alerts</h2>
+          <div className="space-y-2 text-sm max-h-64 overflow-auto pr-1">
+            {alerts.map((a) => (
+              <form key={a.id} action={handleResolveAlert} className="border rounded-lg p-2">
+                <input type="hidden" name="id" value={a.id} />
+                <p className="font-semibold">{a.title}</p>
+                <p className="text-slate-600">{a.message}</p>
+                <p className="text-xs text-slate-400">{a.pharmacy.name} - {a.pharmacy.location}</p>
+                <button className="text-xs font-bold text-indigo-600 mt-1">Resolve</button>
+              </form>
+            ))}
+          </div>
+        </div>
+        <div className="rounded-2xl border bg-white p-5">
+          <h2 className="font-bold mb-3">Audit trail</h2>
+          <div className="space-y-2 text-xs max-h-64 overflow-auto pr-1">
+            {auditTrails.map((a) => (
+              <div key={a.id} className="border rounded-lg p-2">
+                <p className="font-semibold">{a.action}</p>
+                <p>{a.actor.name} ({a.actor.role})</p>
+                <p className="text-slate-500">{new Date(a.createdAt).toLocaleString()}</p>
               </div>
             ))}
           </div>

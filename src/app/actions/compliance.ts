@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth";
-import { updateComplianceRecord, upsertPharmacyScore } from "@/lib/store";
+import { updateComplianceRecord, upsertPharmacyScore, logAuditEvent } from "@/lib/store";
 
 export async function updateComplianceRecordAction(formData: FormData) {
   const session = await getSession();
@@ -22,6 +22,13 @@ export async function updateComplianceRecordAction(formData: FormData) {
 
   try {
     await updateComplianceRecord(id, { status, registrationStatus, notes, expiryDate });
+    await logAuditEvent({
+      actorUserId: session.id,
+      action: "compliance.update",
+      entityType: "compliance_record",
+      entityId: id,
+      payload: JSON.stringify({ status, registrationStatus }),
+    });
     revalidatePath("/admin/dashboard");
     revalidatePath("/distributor/dashboard");
     return { success: true };
@@ -46,6 +53,13 @@ export async function upsertPharmacyScoreAction(formData: FormData) {
 
   try {
     await upsertPharmacyScore({ pharmacyId, score, riskLevel });
+    await logAuditEvent({
+      actorUserId: session.id,
+      action: "risk.score.upsert",
+      entityType: "pharmacy_score",
+      entityId: pharmacyId,
+      payload: JSON.stringify({ score, riskLevel }),
+    });
     revalidatePath("/admin/dashboard");
     revalidatePath("/distributor/dashboard");
     return { success: true };

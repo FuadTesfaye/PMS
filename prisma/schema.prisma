@@ -41,6 +41,13 @@ enum RiskLevel {
   high
 }
 
+enum AlertSeverity {
+  low
+  medium
+  high
+  critical
+}
+
 model User {
   id         String     @id @default(cuid())
   name       String
@@ -53,6 +60,7 @@ model User {
   pharmacy   Pharmacy?  @relation(fields: [pharmacyId], references: [id], onDelete: SetNull)
   orders     Order[]
   reports    FieldReport[] @relation("SalesRepReports")
+  auditTrails AuditTrail[]
 }
 
 model Pharmacy {
@@ -67,6 +75,7 @@ model Pharmacy {
   stockLogs  StockLog[]
   reports    FieldReport[]
   scores     PharmacyScore[]
+  alerts     Alert[]
 }
 
 model Medicine {
@@ -85,6 +94,7 @@ model Medicine {
   orderItems           OrderItem[]
   stockLogs            StockLog[]
   complianceRecords    ComplianceRecord[]
+  alerts               Alert[]
 
   @@index([supplier, category])
 }
@@ -181,4 +191,36 @@ model PharmacyScore {
   pharmacy    Pharmacy  @relation(fields: [pharmacyId], references: [id], onDelete: Cascade)
 
   @@index([pharmacyId, lastUpdated])
+}
+
+model Alert {
+  id          String        @id @default(cuid())
+  pharmacyId  String
+  medicineId  String?
+  type        String
+  title       String
+  message     String
+  severity    AlertSeverity @default(medium)
+  isResolved  Boolean       @default(false)
+  createdAt   DateTime      @default(now())
+  resolvedAt  DateTime?
+  pharmacy    Pharmacy      @relation(fields: [pharmacyId], references: [id], onDelete: Cascade)
+  medicine    Medicine?     @relation(fields: [medicineId], references: [id], onDelete: SetNull)
+
+  @@index([pharmacyId, createdAt])
+  @@index([isResolved, severity])
+}
+
+model AuditTrail {
+  id         String   @id @default(cuid())
+  actorUserId String
+  action     String
+  entityType String
+  entityId   String
+  payload    String?
+  createdAt  DateTime @default(now())
+  actor      User     @relation(fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([entityType, entityId, createdAt])
+  @@index([actorUserId, createdAt])
 }

@@ -318,6 +318,15 @@ export async function getDistributorInsights() {
       quantity,
     }));
 
+  const recommendations = lowStockAlerts.map((m) => ({
+    medicineId: m.id,
+    name: m.name,
+    supplier: m.supplier,
+    currentStock: m.stock,
+    recommendedRestockQty: Math.max(20, 50 - m.stock),
+    urgency: m.stock < 5 ? "critical" : "high",
+  }));
+
   return {
     totalPharmacies,
     totalOrders,
@@ -342,6 +351,7 @@ export async function getDistributorInsights() {
       totalValue: Number(p._sum.total ?? 0),
     })),
     prescriptionTrends: rxTop,
+    restockRecommendations: recommendations,
   };
 }
 
@@ -371,6 +381,76 @@ export async function getComplianceRecords() {
   return prisma.complianceRecord.findMany({
     include: { medicine: true },
     orderBy: { updatedAt: "desc" },
+  });
+}
+
+export async function getOpenAlerts() {
+  return prisma.alert.findMany({
+    where: { isResolved: false },
+    include: {
+      pharmacy: { select: { id: true, name: true, location: true } },
+      medicine: { select: { id: true, name: true, supplier: true } },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
+export async function generateLowStockAlerts(threshold = 10) {
+  const medicines = await prisma.medicine.findMany({ where: { stock: { lt: threshold } } });
+  const pharmacies = await prisma.pharmacy.findMany({ select: { id: true } });
+  const generated: string[] = [];
+
+  for (const med of medicines) {
+    for (const pharmacy of pharmacies) {
+      const existing = await prisma.alert.findFirst({
+        where: {
+          pharmacyId: pharmacy.id,
+          medicineId: med.id,
+          type: "low_stock",
+          isResolved: false,
+        },
+      });
+      if (!existing) {
+        const created = await prisma.alert.create({
+          data: {
+            pharmacyId: pharmacy.id,
+            medicineId: med.id,
+            type: "low_stock",
+            title: "Low stock risk detected",
+            message: `${med.name} stock is ${med.stock}. Recommended restock immediately.`,
+            severity: med.stock < 5 ? "critical" : "high",
+          },
+        });
+        generated.push(created.id);
+      }
+    }
+  }
+
+  return generated;
+}
+
+export async function resolveAlert(id: string) {
+  return prisma.alert.update({
+    where: { id },
+    data: { isResolved: true, resolvedAt: new Date() },
+  });
+}
+
+export async function logAuditEvent(params: {
+  actorUserId: string;
+  action: string;
+  entityType: string;
+  entityId: string;
+  payload?: string;
+}) {
+  return prisma.auditTrail.create({ data: params });
+}
+
+export async function getAuditTrails(limit = 100) {
+  return prisma.auditTrail.findMany({
+    include: { actor: { select: { id: true, name: true, role: true } } },
+    orderBy: { createdAt: "desc" },
+    take: limit,
   });
 }
 
