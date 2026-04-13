@@ -12,9 +12,10 @@ export async function addMedicineAction(data: Omit<Medicine, 'id'>) {
   }
 
   try {
-    const newMed = addMedicine(data);
+    const newMed = await addMedicine(data);
     revalidatePath('/admin/dashboard');
-    revalidatePath('/customer/dashboard');
+    revalidatePath('/pharmacy/dashboard');
+    revalidatePath('/distributor/dashboard');
     return { success: true, medicine: newMed };
   } catch (error) {
     console.error('Failed to add medicine:', error);
@@ -29,10 +30,11 @@ export async function updateMedicineAction(id: string, data: Partial<Medicine>) 
   }
 
   try {
-    const updated = updateMedicine(id, data);
+    const updated = await updateMedicine(id, data);
     if (!updated) return { error: 'Medicine not found' };
     revalidatePath('/admin/dashboard');
-    revalidatePath('/customer/dashboard');
+    revalidatePath('/pharmacy/dashboard');
+    revalidatePath('/distributor/dashboard');
     return { success: true, medicine: updated };
   } catch (error) {
     console.error('Failed to update medicine:', error);
@@ -47,10 +49,11 @@ export async function deleteMedicineAction(id: string) {
   }
 
   try {
-    const deleted = deleteMedicine(id);
+    const deleted = await deleteMedicine(id);
     if (!deleted) return { error: 'Medicine not found' };
     revalidatePath('/admin/dashboard');
-    revalidatePath('/customer/dashboard');
+    revalidatePath('/pharmacy/dashboard');
+    revalidatePath('/distributor/dashboard');
     return { success: true };
   } catch (error) {
     console.error('Failed to delete medicine:', error);

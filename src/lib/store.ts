@@ -1,191 +1,337 @@
-import { Medicine, Order, User } from '@/types';
-import { v4 as uuidv4 } from 'uuid';
+import { Prisma } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
+import { Medicine, Order } from "@/types";
 
-interface DataStore {
-  users: User[];
-  medicines: Medicine[];
-  orders: Order[];
+const defaultImage =
+  "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?q=80&w=260&auto=format&fit=crop";
+
+function mapMedicine(med: {
+  id: string;
+  name: string;
+  brand: string;
+  supplier: string;
+  category: string;
+  price: Prisma.Decimal;
+  stock: number;
+  requiresPrescription: boolean;
+  expiryDate: Date;
+  batchNumber: string;
+}): Medicine {
+  return {
+    ...med,
+    description: `${med.brand} by ${med.supplier}`,
+    price: Number(med.price),
+    expiryDate: med.expiryDate.toISOString(),
+    image: defaultImage,
+  };
 }
 
-const initialMedicines: Medicine[] = [
-  {
-    id: 'med-1',
-    name: 'Paracetamol 500mg',
-    description: 'Effective pain reliever and fever reducer.',
-    price: 12.50,
-    stock: 150,
-    requiresPrescription: false,
-    category: 'Pain Relief',
-    image: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?q=80&w=260&auto=format&fit=crop',
-  },
-  {
-    id: 'med-2',
-    name: 'Amoxicillin 250mg',
-    description: 'Broad-spectrum antibiotic for bacterial infections.',
-    price: 45.00,
-    stock: 45,
-    requiresPrescription: true,
-    category: 'Antibiotics',
-    image: 'https://images.unsplash.com/photo-1471864190281-ad5f9f38d9c6?q=80&w=260&auto=format&fit=crop',
-  },
-  {
-    id: 'med-3',
-    name: 'Ibuprofen 400mg',
-    description: 'Nonsteroidal anti-inflammatory drug (NSAID) for pain.',
-    price: 18.25,
-    stock: 80,
-    requiresPrescription: false,
-    category: 'Pain Relief',
-    image: 'https://images.unsplash.com/photo-1550572017-ed2001599379?q=80&w=260&auto=format&fit=crop',
-  },
-  {
-    id: 'med-4',
-    name: 'Cetirizine 10mg',
-    description: 'Antihistamine for allergy relief.',
-    price: 22.00,
-    stock: 60,
-    requiresPrescription: false,
-    category: 'Allergy',
-    image: 'https://images.unsplash.com/photo-1585435557343-3b092031a831?q=80&w=260&auto=format&fit=crop',
-  },
-  {
-    id: 'med-5',
-    name: 'Warfarin 5mg',
-    description: 'Blood thinner to prevent blood clots.',
-    price: 75.00,
-    stock: 20,
-    requiresPrescription: true,
-    category: 'Cardiovascular',
-    image: 'https://images.unsplash.com/photo-1628771065518-0d82f1110503?q=80&w=260&auto=format&fit=crop',
-  }
-];
-
-const initialUsers: User[] = [
-  {
-    id: 'user-1',
-    name: 'John Customer',
-    email: 'customer@example.com',
-    password: 'password123',
-    role: 'customer',
-  },
-  {
-    id: 'user-2',
-    name: 'Pharma Specialist',
-    email: 'pharma@example.com',
-    password: 'password123',
-    role: 'pharmacist',
-  },
-  {
-    id: 'user-3',
-    name: 'System Admin',
-    email: 'admin@example.com',
-    password: 'password123',
-    role: 'admin',
-  }
-];
-
-// Singleton to prevent data loss on HMR
-const globalForStore = globalThis as unknown as {
-  store: DataStore | undefined;
-};
-
-export const store: DataStore = globalForStore.store ?? {
-  users: initialUsers,
-  medicines: initialMedicines,
-  orders: [],
-};
-
-if (process.env.NODE_ENV !== 'production') globalForStore.store = store;
-
-// Helper methods
-export const getMedicines = () => store.medicines;
-export const getMedicine = (id: string) => store.medicines.find(m => m.id === id);
-
-export const getUsers = () => store.users;
-export const getUser = (email: string) => store.users.find(u => u.email === email);
-
-export const getOrders = () => store.orders;
-export const getOrder = (id: string) => store.orders.find(o => o.id === id);
-export const getOrdersByUser = (userId: string) => store.orders.filter(o => o.userId === userId);
-export const getPendingOrders = () => store.orders.filter(o => o.status === 'pending' || o.status === 'reviewing');
-export const getLowStockMedicines = (threshold = 10) => store.medicines.filter(m => m.stock <= threshold);
-
-export const getStatistics = () => {
-  const totalRevenue = store.orders
-    .filter(o => o.status === 'completed' || o.status === 'ready' || o.status === 'approved')
-    .reduce((sum, o) => sum + o.totalPrice, 0);
-  
-  const pendingOrders = store.orders.filter(o => o.status === 'pending' || o.status === 'reviewing').length;
-  const lowStockItems = getLowStockMedicines().length;
-  
+function mapOrder(order: {
+  id: string;
+  pharmacyId: string;
+  userId: string;
+  status: Order["status"];
+  total: Prisma.Decimal;
+  createdAt: Date;
+  updatedAt: Date;
+  user: { name: string };
+  items: Array<{ medicineId: string; quantity: number; price: Prisma.Decimal; medicine: { name: string } }>;
+  prescription: { imageUrl: string; extractedText: string | null } | null;
+}): Order {
   return {
-    totalRevenue,
+    id: order.id,
+    pharmacyId: order.pharmacyId,
+    userId: order.userId,
+    userName: order.user.name,
+    items: order.items.map((item) => ({
+      medicineId: item.medicineId,
+      name: item.medicine.name,
+      quantity: item.quantity,
+      priceAtTime: Number(item.price),
+    })),
+    totalPrice: Number(order.total),
+    status: order.status,
+    prescriptionImage: order.prescription?.imageUrl,
+    rejectionNote: order.prescription?.extractedText ?? undefined,
+    createdAt: order.createdAt.toISOString(),
+    updatedAt: order.updatedAt.toISOString(),
+  };
+}
+
+export async function getMedicines() {
+  const data = await prisma.medicine.findMany({ orderBy: { createdAt: "desc" } });
+  return data.map(mapMedicine);
+}
+
+export async function getMedicine(id: string) {
+  const med = await prisma.medicine.findUnique({ where: { id } });
+  return med ? mapMedicine(med) : null;
+}
+
+export async function getUser(email: string) {
+  return prisma.user.findUnique({ where: { email } });
+}
+
+export async function getUserById(id: string) {
+  return prisma.user.findUnique({ where: { id } });
+}
+
+export async function getOrders() {
+  const orders = await prisma.order.findMany({
+    include: {
+      user: { select: { name: true } },
+      items: { include: { medicine: { select: { name: true } } } },
+      prescription: true,
+    },
+    orderBy: { createdAt: "desc" },
+  });
+  return orders.map(mapOrder);
+}
+
+export async function getOrdersByUser(userId: string) {
+  const orders = await prisma.order.findMany({
+    where: { userId },
+    include: {
+      user: { select: { name: true } },
+      items: { include: { medicine: { select: { name: true } } } },
+      prescription: true,
+    },
+    orderBy: { createdAt: "desc" },
+  });
+  return orders.map(mapOrder);
+}
+
+export async function getLowStockMedicines(threshold = 10) {
+  const meds = await prisma.medicine.findMany({ where: { stock: { lte: threshold } } });
+  return meds.map(mapMedicine);
+}
+
+export async function getStatistics() {
+  const [revenueAgg, pendingOrders, lowStockItems, totalOrders, totalMedicines] = await Promise.all([
+    prisma.order.aggregate({
+      where: { status: { in: ["approved", "ready", "completed"] } },
+      _sum: { total: true },
+    }),
+    prisma.order.count({ where: { status: { in: ["pending", "reviewing"] } } }),
+    prisma.medicine.count({ where: { stock: { lte: 10 } } }),
+    prisma.order.count(),
+    prisma.medicine.count(),
+  ]);
+
+  return {
+    totalRevenue: Number(revenueAgg._sum.total ?? 0),
     pendingOrders,
     lowStockItems,
-    totalOrders: store.orders.length,
-    totalMedicines: store.medicines.length,
+    totalOrders,
+    totalMedicines,
   };
-};
+}
 
-export const createOrder = (orderData: Partial<Order>) => {
-  const newOrder: Order = {
-    id: `order-${uuidv4().slice(0, 8)}`,
-    userId: orderData.userId!,
-    userName: orderData.userName!,
-    items: orderData.items || [],
-    totalPrice: orderData.totalPrice || 0,
-    status: 'pending',
-    prescriptionImage: orderData.prescriptionImage,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-  store.orders.unshift(newOrder); // Newest first
-  
-  // Deduct stock
-  newOrder.items.forEach(item => {
-    const med = getMedicine(item.medicineId);
-    if (med) med.stock -= item.quantity;
+export async function createOrder(params: {
+  pharmacyId: string;
+  userId: string;
+  items: Array<{ medicineId: string; quantity: number; priceAtTime: number }>;
+  totalPrice: number;
+  prescriptionImage?: string;
+}) {
+  const order = await prisma.$transaction(async (tx) => {
+    for (const item of params.items) {
+      const med = await tx.medicine.findUnique({ where: { id: item.medicineId } });
+      if (!med || med.stock < item.quantity) {
+        throw new Error(`Insufficient stock for medicine ${item.medicineId}`);
+      }
+      await tx.medicine.update({
+        where: { id: item.medicineId },
+        data: { stock: { decrement: item.quantity } },
+      });
+      await tx.stockLog.create({
+        data: {
+          medicineId: item.medicineId,
+          pharmacyId: params.pharmacyId,
+          change: -item.quantity,
+          reason: "order_placed",
+        },
+      });
+    }
+
+    const created = await tx.order.create({
+      data: {
+        pharmacyId: params.pharmacyId,
+        userId: params.userId,
+        status: "pending",
+        total: params.totalPrice,
+        items: {
+          create: params.items.map((item) => ({
+            medicineId: item.medicineId,
+            quantity: item.quantity,
+            price: item.priceAtTime,
+          })),
+        },
+      },
+      include: {
+        user: { select: { name: true } },
+        items: { include: { medicine: { select: { name: true } } } },
+      },
+    });
+
+    if (params.prescriptionImage) {
+      await tx.prescription.create({
+        data: {
+          orderId: created.id,
+          imageUrl: params.prescriptionImage,
+        },
+      });
+    }
+
+    return created;
   });
 
-  console.log(`[Order Created] ID: ${newOrder.id} by ${newOrder.userName}`);
-  return newOrder;
-};
+  const withPrescription = await prisma.order.findUniqueOrThrow({
+    where: { id: order.id },
+    include: {
+      user: { select: { name: true } },
+      items: { include: { medicine: { select: { name: true } } } },
+      prescription: true,
+    },
+  });
 
-export const updateOrderStatus = (orderId: string, status: Order['status'], note?: string) => {
-  const order = getOrder(orderId);
-  if (order) {
-    order.status = status;
-    order.rejectionNote = note;
-    order.updatedAt = new Date().toISOString();
-    console.log(`[Order Updated] ID: ${orderId} Status: ${status}`);
-    return order;
+  return mapOrder(withPrescription);
+}
+
+export async function updateOrderStatus(orderId: string, status: Order["status"], note?: string) {
+  const order = await prisma.order.update({
+    where: { id: orderId },
+    data: { status },
+    include: {
+      user: { select: { name: true } },
+      items: { include: { medicine: { select: { name: true } } } },
+      prescription: true,
+    },
+  });
+
+  if (order.prescription) {
+    await prisma.prescription.update({
+      where: { orderId: order.id },
+      data:
+        status === "approved"
+          ? { status: "approved", extractedText: note ?? null }
+          : status === "rejected"
+            ? { status: "rejected", extractedText: note ?? null }
+            : {},
+    });
   }
-  return null;
-};
 
-export const updateMedicine = (id: string, data: Partial<Medicine>) => {
-  const index = store.medicines.findIndex(m => m.id === id);
-  if (index !== -1) {
-    store.medicines[index] = { ...store.medicines[index], ...data };
-    return store.medicines[index];
-  }
-  return null;
-};
+  return mapOrder(order);
+}
 
-export const addMedicine = (data: Omit<Medicine, 'id'>) => {
-  const newMed: Medicine = {
-    ...data,
-    id: `med-${uuidv4().slice(0, 8)}`,
+export async function updateMedicine(id: string, data: Partial<Medicine>) {
+  const updated = await prisma.medicine.update({
+    where: { id },
+    data: {
+      name: data.name,
+      brand: data.brand,
+      supplier: data.supplier,
+      category: data.category,
+      price: data.price,
+      stock: data.stock,
+      requiresPrescription: data.requiresPrescription,
+      expiryDate: data.expiryDate ? new Date(data.expiryDate) : undefined,
+      batchNumber: data.batchNumber,
+    },
+  });
+  return mapMedicine(updated);
+}
+
+export async function addMedicine(data: Omit<Medicine, "id">) {
+  const created = await prisma.medicine.create({
+    data: {
+      name: data.name,
+      brand: data.brand,
+      supplier: data.supplier,
+      category: data.category,
+      price: data.price,
+      stock: data.stock,
+      requiresPrescription: data.requiresPrescription,
+      expiryDate: new Date(data.expiryDate),
+      batchNumber: data.batchNumber,
+    },
+  });
+  return mapMedicine(created);
+}
+
+export async function deleteMedicine(id: string) {
+  await prisma.medicine.delete({ where: { id } });
+  return true;
+}
+
+export async function getDistributorInsights() {
+  const [totalPharmacies, totalOrders, topMedicines, lowStockAlerts] = await Promise.all([
+    prisma.pharmacy.count(),
+    prisma.order.count(),
+    prisma.orderItem.groupBy({
+      by: ["medicineId"],
+      _sum: { quantity: true },
+      orderBy: { _sum: { quantity: "desc" } },
+      take: 5,
+    }),
+    prisma.medicine.findMany({
+      where: { stock: { lt: 10 } },
+      take: 10,
+      orderBy: { stock: "asc" },
+    }),
+  ]);
+
+  const medicineIds = topMedicines.map((m) => m.medicineId);
+  const names = await prisma.medicine.findMany({
+    where: { id: { in: medicineIds } },
+    select: { id: true, name: true, supplier: true },
+  });
+  const medicineMap = new Map(names.map((m) => [m.id, m]));
+
+  return {
+    totalPharmacies,
+    totalOrders,
+    topMedicines: topMedicines.map((m) => ({
+      medicineId: m.medicineId,
+      name: medicineMap.get(m.medicineId)?.name ?? "Unknown",
+      supplier: medicineMap.get(m.medicineId)?.supplier ?? "Unknown",
+      quantity: m._sum.quantity ?? 0,
+    })),
+    lowStockAlerts: lowStockAlerts.map((m) => ({
+      id: m.id,
+      name: m.name,
+      stock: m.stock,
+      supplier: m.supplier,
+      predicted: m.stock < 5 ? "high" : "medium",
+    })),
   };
-  store.medicines.push(newMed);
-  return newMed;
-};
+}
 
-export const deleteMedicine = (id: string) => {
-  const index = store.medicines.findIndex(m => m.id === id);
-  if (index !== -1) {
-    store.medicines.splice(index, 1);
-    return true;
-  }
-  return false;
-};
+export async function getPharmacies() {
+  return prisma.pharmacy.findMany({ orderBy: { createdAt: "desc" } });
+}
+
+export async function createFieldReport(data: {
+  salesRepId: string;
+  pharmacyId: string;
+  notes: string;
+  competitorInfo: string;
+  stockObservation: string;
+}) {
+  return prisma.fieldReport.create({ data });
+}
+
+export async function getFieldReports(salesRepId?: string) {
+  return prisma.fieldReport.findMany({
+    where: salesRepId ? { salesRepId } : undefined,
+    include: { pharmacy: true },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
+export async function getComplianceRecords() {
+  return prisma.complianceRecord.findMany({
+    include: { medicine: true },
+    orderBy: { updatedAt: "desc" },
+  });
+}

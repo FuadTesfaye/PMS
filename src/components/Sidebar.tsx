@@ -5,11 +5,8 @@ import { usePathname } from 'next/navigation';
 import { 
   LayoutDashboard, 
   Pill, 
-  ShoppingCart, 
   History, 
   FileText, 
-  Package, 
-  Users, 
   BarChart3,
   Settings,
   X
@@ -24,8 +21,8 @@ interface SidebarProps {
 }
 
 const customerLinks = [
-  { href: '/customer/dashboard', label: 'Shop Medicines', icon: Pill },
-  { href: '/customer/dashboard?tab=orders', label: 'My Orders', icon: History },
+  { href: '/pharmacy/dashboard', label: 'Medicine List', icon: Pill },
+  { href: '/pharmacy/dashboard?tab=orders', label: 'Order History', icon: History },
 ];
 
 const pharmacistLinks = [
@@ -36,9 +33,26 @@ const adminLinks = [
   { href: '/admin/dashboard', label: 'Overview', icon: LayoutDashboard },
 ];
 
+const distributorLinks = [
+  { href: '/distributor/dashboard', label: 'Network Insights', icon: BarChart3 },
+];
+
+const salesRepLinks = [
+  { href: '/sales-rep/dashboard', label: 'Field Reports', icon: FileText },
+];
+
 export default function Sidebar({ role, isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
-  const links = role === 'admin' ? adminLinks : role === 'pharmacist' ? pharmacistLinks : customerLinks;
+  const links =
+    role === "admin"
+      ? adminLinks
+      : role === "pharmacist"
+        ? pharmacistLinks
+        : role === "distributor"
+          ? distributorLinks
+          : role === "sales_rep"
+            ? salesRepLinks
+            : customerLinks;
 
   return (
     <>

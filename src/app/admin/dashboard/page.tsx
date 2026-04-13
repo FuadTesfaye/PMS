@@ -16,9 +16,9 @@ export default async function AdminDashboardPage() {
     redirect('/login');
   }
 
-  const medicines = getMedicines();
-  const orders = getOrders();
-  const stats = getStatistics();
+  const medicines = await getMedicines();
+  const orders = await getOrders();
+  const stats = await getStatistics();
 
   return (
     <DashboardLayout user={{ name: session.name, role: session.role }}>

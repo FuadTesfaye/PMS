@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Order } from '@/types';
+import { Order, OrderStatus } from '@/types';
 import OrderBadge from '@/components/OrderBadge';
 import { 
   ClipboardList, 
@@ -37,7 +37,7 @@ export default function PharmacistDashboardClient({ initialOrders }: PharmacistD
     return true;
   });
 
-  const handleStatusUpdate = async (orderId: string, status: any, note?: string) => {
+  const handleStatusUpdate = async (orderId: string, status: OrderStatus, note?: string) => {
     setIsSubmitting(true);
     const result = await updateOrderAction(orderId, status, note);
     if (result.success) {

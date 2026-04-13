@@ -7,30 +7,32 @@ import { OrderItem, OrderStatus } from '@/types';
 
 export async function placeOrder(items: OrderItem[], totalPrice: number, prescriptionImage?: string) {
   const session = await getSession();
-  if (!session || session.role !== 'customer') {
+  if (!session || session.role !== 'pharmacy') {
     return { error: 'Unauthorized' };
   }
+  if (!session.pharmacyId) return { error: "No pharmacy assigned to user" };
 
   // Validate stock before placing order
   for (const item of items) {
-    const med = getMedicine(item.medicineId);
+    const med = await getMedicine(item.medicineId);
     if (!med || med.stock < item.quantity) {
       return { error: `Insufficient stock for ${med?.name || 'unknown medicine'}` };
     }
   }
 
   try {
-    const order = createOrder({
+    const order = await createOrder({
+      pharmacyId: session.pharmacyId,
       userId: session.id,
-      userName: session.name,
       items,
       totalPrice,
       prescriptionImage,
     });
 
-    revalidatePath('/customer/dashboard');
+    revalidatePath('/pharmacy/dashboard');
     revalidatePath('/pharmacist/dashboard');
     revalidatePath('/admin/dashboard');
+    revalidatePath('/distributor/dashboard');
 
     return { success: true, orderId: order.id };
   } catch (error) {
@@ -46,12 +48,13 @@ export async function updateOrderAction(orderId: string, status: OrderStatus, no
   }
 
   try {
-    const updated = updateOrderStatus(orderId, status, note);
+    const updated = await updateOrderStatus(orderId, status, note);
     if (!updated) return { error: 'Order not found' };
 
-    revalidatePath('/customer/dashboard');
+    revalidatePath('/pharmacy/dashboard');
     revalidatePath('/pharmacist/dashboard');
     revalidatePath('/admin/dashboard');
+    revalidatePath('/distributor/dashboard');
 
     return { success: true };
   } catch (error) {

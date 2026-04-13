@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Medicine, Order } from '@/types';
+import { Medicine, Order, OrderStatus } from '@/types';
 import MedicineCard from '@/components/MedicineCard';
 import Cart from '@/components/Cart';
 import OrderBadge from '@/components/OrderBadge';
@@ -72,8 +72,8 @@ export default function CustomerDashboardClient({ initialMedicines, initialOrder
         {/* Header Tabs */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
-            <h1 className="font-outfit text-3xl font-black text-slate-900">Patient Dashboard</h1>
-            <p className="text-slate-500 mt-1">Manage your health and medications</p>
+            <h1 className="font-outfit text-3xl font-black text-slate-900">Pharmacy Dashboard</h1>
+            <p className="text-slate-500 mt-1">Manage medicine orders and inventory requests</p>
           </div>
           
           <div className="flex items-center bg-white p-1 rounded-2xl border border-slate-200 shadow-sm self-start">
@@ -218,7 +218,7 @@ export default function CustomerDashboardClient({ initialMedicines, initialOrder
                           {['pending', 'approved', 'ready', 'completed'].map((step, idx) => {
                             const statuses = ['pending', 'reviewing', 'approved', 'rejected', 'ready', 'completed'];
                             const currentIdx = statuses.indexOf(order.status);
-                            const stepIdx = statuses.indexOf(step as any);
+                            const stepIdx = statuses.indexOf(step as OrderStatus);
                             const isPast = currentIdx >= stepIdx && order.status !== 'rejected';
                             const isCurrent = order.status === step;
 

@@ -12,12 +12,12 @@ export const metadata = {
 export default async function CustomerDashboardPage() {
   const session = await getSession();
   
-  if (!session || session.role !== 'customer') {
+  if (!session || session.role !== 'pharmacy') {
     redirect('/login');
   }
 
-  const medicines = getMedicines();
-  const orders = getOrdersByUser(session.id);
+  const medicines = await getMedicines();
+  const orders = await getOrdersByUser(session.id);
 
   return (
     <DashboardLayout user={{ name: session.name, role: session.role }}>

@@ -76,12 +76,16 @@ export default function AdminDashboardClient({ initialMedicines, initialOrders, 
     const formData = new FormData(e.currentTarget);
     const data = {
       name: formData.get('name') as string,
+      brand: formData.get('brand') as string,
+      supplier: formData.get('supplier') as string,
       description: formData.get('description') as string,
       category: formData.get('category') as string,
       price: parseFloat(formData.get('price') as string),
       stock: parseInt(formData.get('stock') as string),
       requiresPrescription: formData.get('requiresPrescription') === 'true',
-      image: `https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?q=80&w=260&auto=format&fit=crop`, // Placeholder
+      expiryDate: formData.get('expiryDate') as string,
+      batchNumber: formData.get('batchNumber') as string,
+      image: `https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?q=80&w=260&auto=format&fit=crop`,
     };
 
     const result = await addMedicineAction(data);
@@ -101,11 +105,15 @@ export default function AdminDashboardClient({ initialMedicines, initialOrders, 
     const formData = new FormData(e.currentTarget);
     const data = {
       name: formData.get('name') as string,
+      brand: formData.get('brand') as string,
+      supplier: formData.get('supplier') as string,
       description: formData.get('description') as string,
       category: formData.get('category') as string,
       price: parseFloat(formData.get('price') as string),
       stock: parseInt(formData.get('stock') as string),
       requiresPrescription: formData.get('requiresPrescription') === 'true',
+      expiryDate: formData.get('expiryDate') as string,
+      batchNumber: formData.get('batchNumber') as string,
     };
 
     const result = await updateMedicineAction(editingMed.id, data);
@@ -321,6 +329,14 @@ export default function AdminDashboardClient({ initialMedicines, initialOrders, 
                     <textarea name="description" defaultValue={editingMed?.description} required rows={3} className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-100 text-sm focus:ring-2 focus:ring-emerald-500/20 transition-all h-24" />
                   </div>
                   <div>
+                    <label className="text-[10px] font-black text-slate-400 uppercase mb-1 block">Brand</label>
+                    <input name="brand" defaultValue={editingMed?.brand} required className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-100 text-sm focus:ring-2 focus:ring-emerald-500/20 transition-all" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black text-slate-400 uppercase mb-1 block">Supplier</label>
+                    <input name="supplier" defaultValue={editingMed?.supplier} required className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-100 text-sm focus:ring-2 focus:ring-emerald-500/20 transition-all" />
+                  </div>
+                  <div>
                     <label className="text-[10px] font-black text-slate-400 uppercase mb-1 block">Category</label>
                     <input name="category" defaultValue={editingMed?.category} required className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-100 text-sm focus:ring-2 focus:ring-emerald-500/20 transition-all" />
                   </div>
@@ -338,6 +354,14 @@ export default function AdminDashboardClient({ initialMedicines, initialOrders, 
                   <div>
                     <label className="text-[10px] font-black text-slate-400 uppercase mb-1 block">Initial Stock</label>
                     <input name="stock" type="number" defaultValue={editingMed?.stock} required className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-100 text-sm focus:ring-2 focus:ring-emerald-500/20 transition-all" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black text-slate-400 uppercase mb-1 block">Expiry Date</label>
+                    <input name="expiryDate" type="date" defaultValue={editingMed?.expiryDate?.slice(0, 10)} required className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-100 text-sm focus:ring-2 focus:ring-emerald-500/20 transition-all" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black text-slate-400 uppercase mb-1 block">Batch Number</label>
+                    <input name="batchNumber" defaultValue={editingMed?.batchNumber} required className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-100 text-sm focus:ring-2 focus:ring-emerald-500/20 transition-all" />
                   </div>
                 </div>
                 

@@ -10,10 +10,14 @@ export default async function Home() {
 
   if (session.role === 'admin') {
     redirect('/admin/dashboard');
+  } else if (session.role === 'distributor') {
+    redirect('/distributor/dashboard');
+  } else if (session.role === 'sales_rep') {
+    redirect('/sales-rep/dashboard');
   } else if (session.role === 'pharmacist') {
     redirect('/pharmacist/dashboard');
   } else {
-    redirect('/customer/dashboard');
+    redirect('/pharmacy/dashboard');
   }
 
   return null;

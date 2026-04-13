@@ -62,7 +62,7 @@ export default function LoginPage() {
                   autoComplete="email"
                   required
                   className="block w-full rounded-xl border-0 py-3 pl-10 text-slate-900 ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-emerald-500 sm:text-sm sm:leading-6 transition-all"
-                  placeholder="admin@example.com"
+                  placeholder="distributor@example.com"
                 />
               </div>
             </div>
@@ -111,22 +111,30 @@ export default function LoginPage() {
                 <div className="w-full border-t border-slate-200" />
               </div>
               <div className="relative flex justify-center text-sm font-medium leading-6">
-                <span className="bg-white px-4 text-slate-500 uppercase tracking-widest text-[10px]">Demo Acccounts</span>
+                <span className="bg-white px-4 text-slate-500 uppercase tracking-widest text-[10px]">Demo Accounts</span>
               </div>
             </div>
 
             <div className="mt-4 grid grid-cols-1 gap-2 text-xs text-slate-500">
               <div className="flex justify-between rounded-lg bg-slate-50 p-2 border border-slate-100">
-                <span>Customer</span>
-                <span className="font-mono">customer@example.com / password123</span>
+                <span>Pharmacy</span>
+                <span className="font-mono">pharmacy@example.com / password123</span>
               </div>
               <div className="flex justify-between rounded-lg bg-slate-50 p-2 border border-slate-100">
                 <span>Pharmacist</span>
-                <span className="font-mono">pharma@example.com / password123</span>
+                <span className="font-mono">pharmacist@example.com / password123</span>
               </div>
               <div className="flex justify-between rounded-lg bg-slate-50 p-2 border border-slate-100">
                 <span>Admin</span>
                 <span className="font-mono">admin@example.com / password123</span>
+              </div>
+              <div className="flex justify-between rounded-lg bg-slate-50 p-2 border border-slate-100">
+                <span>Distributor</span>
+                <span className="font-mono">distributor@example.com / password123</span>
+              </div>
+              <div className="flex justify-between rounded-lg bg-slate-50 p-2 border border-slate-100">
+                <span>Sales Rep</span>
+                <span className="font-mono">salesrep@example.com / password123</span>
               </div>
             </div>
           </div>

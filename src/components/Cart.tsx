@@ -46,7 +46,7 @@ export default function Cart({ items, onUpdateQuantity, onRemove, onClear, onClo
       alert('Order placed successfully!');
       onClear();
       onClose();
-      router.push('/customer/dashboard?tab=orders');
+      router.push('/pharmacy/dashboard?tab=orders');
     } else {
       alert(result.error || 'Failed to place order');
     }

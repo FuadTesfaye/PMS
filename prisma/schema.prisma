@@ -1,0 +1,184 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+  engineType = "binary"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  pharmacy
+  pharmacist
+  admin
+  distributor
+  sales_rep
+}
+
+enum OrderStatus {
+  pending
+  reviewing
+  approved
+  rejected
+  ready
+  completed
+}
+
+enum PrescriptionStatus {
+  pending
+  approved
+  rejected
+}
+
+enum RiskLevel {
+  low
+  medium
+  high
+}
+
+model User {
+  id         String     @id @default(cuid())
+  name       String
+  email      String     @unique
+  password   String
+  role       UserRole
+  pharmacyId String?
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  pharmacy   Pharmacy?  @relation(fields: [pharmacyId], references: [id], onDelete: SetNull)
+  orders     Order[]
+  reports    FieldReport[] @relation("SalesRepReports")
+}
+
+model Pharmacy {
+  id         String         @id @default(cuid())
+  name       String
+  location   String
+  contact    String
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  users      User[]
+  orders     Order[]
+  stockLogs  StockLog[]
+  reports    FieldReport[]
+  scores     PharmacyScore[]
+}
+
+model Medicine {
+  id                   String             @id @default(cuid())
+  name                 String
+  brand                String
+  supplier             String
+  category             String
+  price                Decimal            @db.Decimal(10, 2)
+  stock                Int
+  requiresPrescription Boolean            @default(false)
+  expiryDate           DateTime
+  batchNumber          String
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  orderItems           OrderItem[]
+  stockLogs            StockLog[]
+  complianceRecords    ComplianceRecord[]
+
+  @@index([supplier, category])
+}
+
+model Order {
+  id           String      @id @default(cuid())
+  pharmacyId   String
+  userId       String
+  status       OrderStatus @default(pending)
+  total        Decimal     @db.Decimal(10, 2)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  pharmacy     Pharmacy    @relation(fields: [pharmacyId], references: [id], onDelete: Restrict)
+  user         User        @relation(fields: [userId], references: [id], onDelete: Restrict)
+  items        OrderItem[]
+  prescription Prescription?
+
+  @@index([pharmacyId, createdAt])
+  @@index([status, createdAt])
+}
+
+model OrderItem {
+  id         String   @id @default(cuid())
+  orderId    String
+  medicineId String
+  quantity   Int
+  price      Decimal  @db.Decimal(10, 2)
+  createdAt  DateTime @default(now())
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  medicine   Medicine @relation(fields: [medicineId], references: [id], onDelete: Restrict)
+
+  @@index([orderId])
+  @@index([medicineId])
+}
+
+model Prescription {
+  id            String             @id @default(cuid())
+  orderId        String             @unique
+  imageUrl       String
+  extractedText  String?
+  status         PrescriptionStatus @default(pending)
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  order          Order              @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+}
+
+model StockLog {
+  id         String   @id @default(cuid())
+  medicineId String
+  pharmacyId String
+  change     Int
+  reason     String
+  createdAt  DateTime @default(now())
+  medicine   Medicine @relation(fields: [medicineId], references: [id], onDelete: Restrict)
+  pharmacy   Pharmacy @relation(fields: [pharmacyId], references: [id], onDelete: Restrict)
+
+  @@index([medicineId, pharmacyId, createdAt])
+}
+
+model FieldReport {
+  id               String   @id @default(cuid())
+  salesRepId       String
+  pharmacyId       String
+  notes            String
+  competitorInfo   String
+  stockObservation String
+  createdAt        DateTime @default(now())
+  salesRep         User     @relation("SalesRepReports", fields: [salesRepId], references: [id], onDelete: Restrict)
+  pharmacy         Pharmacy @relation(fields: [pharmacyId], references: [id], onDelete: Restrict)
+
+  @@index([pharmacyId, createdAt])
+}
+
+model ComplianceRecord {
+  id                 String   @id @default(cuid())
+  medicineId         String
+  status             String
+  expiryDate         DateTime
+  registrationStatus String
+  notes              String
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  medicine           Medicine @relation(fields: [medicineId], references: [id], onDelete: Cascade)
+}
+
+model PharmacyScore {
+  id          String    @id @default(cuid())
+  pharmacyId  String
+  score       Int
+  riskLevel   RiskLevel
+  lastUpdated DateTime  @default(now())
+  pharmacy    Pharmacy  @relation(fields: [pharmacyId], references: [id], onDelete: Cascade)
+
+  @@index([pharmacyId, lastUpdated])
+}

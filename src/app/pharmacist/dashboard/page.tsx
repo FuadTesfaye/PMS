@@ -16,7 +16,7 @@ export default async function PharmacistDashboardPage() {
     redirect('/login');
   }
 
-  const orders = getOrders();
+  const orders = await getOrders();
 
   return (
     <DashboardLayout user={{ name: session.name, role: session.role }}>

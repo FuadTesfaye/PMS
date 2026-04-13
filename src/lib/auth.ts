@@ -1,43 +1,39 @@
-import { SignJWT, jwtVerify } from 'jose';
-import { cookies } from 'next/headers';
-import { NextRequest, NextResponse } from 'next/server';
+import { SignJWT, jwtVerify, JWTPayload } from "jose";
+import { cookies } from "next/headers";
+import { UserRole } from "@/types";
 
-const SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'pharmacy-secret-key-12345');
+const JWT_SECRET = process.env.JWT_SECRET || "change-this-jwt-secret-in-prod";
+const SECRET = new TextEncoder().encode(JWT_SECRET);
 
-export async function encrypt(payload: any) {
-  return await new SignJWT(payload)
-    .setProtectedHeader({ alg: 'HS256' })
+export interface SessionPayload extends JWTPayload {
+  id: string;
+  name: string;
+  role: UserRole;
+  pharmacyId?: string | null;
+}
+
+export async function encrypt(payload: SessionPayload) {
+  return new SignJWT(payload)
+    .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime('2h')
+    .setExpirationTime("8h")
     .sign(SECRET);
 }
 
-export async function decrypt(input: string): Promise<any> {
+export async function decrypt(input: string): Promise<SessionPayload> {
   const { payload } = await jwtVerify(input, SECRET, {
-    algorithms: ['HS256'],
+    algorithms: ["HS256"],
   });
-  return payload;
+  return payload as SessionPayload;
 }
 
 export async function getSession() {
-  const session = (await cookies()).get('session')?.value;
+  const session = (await cookies()).get("session")?.value;
   if (!session) return null;
-  return await decrypt(session);
-}
 
-export async function updateSession(request: NextRequest) {
-  const session = request.cookies.get('session')?.value;
-  if (!session) return;
-
-  // Refresh the session so it doesn't expire
-  const parsed = await decrypt(session);
-  parsed.expires = new Date(Date.now() + 2 * 60 * 60 * 1000);
-  const res = NextResponse.next();
-  res.cookies.set({
-    name: 'session',
-    value: await encrypt(parsed),
-    httpOnly: true,
-    expires: parsed.expires,
-  });
-  return res;
+  try {
+    return await decrypt(session);
+  } catch {
+    return null;
+  }
 }
