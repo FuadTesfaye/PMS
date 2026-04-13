@@ -9,12 +9,19 @@ export const metadata = {
   description: "National visibility across pharmacies and demand signals.",
 };
 
-export default async function DistributorDashboardPage() {
+export default async function DistributorDashboardPage({
+  searchParams,
+}: {
+  searchParams?: { days?: string; supplier?: string };
+}) {
   const session = await getSession();
   if (!session || session.role !== "distributor") redirect("/login");
 
+  const days = searchParams?.days ? Number(searchParams.days) : 30;
+  const supplier = searchParams?.supplier && searchParams.supplier !== "all" ? searchParams.supplier : undefined;
+
   const [insights, pharmacies, reports, alerts, auditTrails] = await Promise.all([
-    getDistributorInsights(),
+    getDistributorInsights({ days, supplier }),
     getPharmacies(),
     getFieldReports(),
     getOpenAlerts(),

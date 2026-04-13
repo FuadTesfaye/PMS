@@ -19,6 +19,8 @@ interface DistributorDashboardClientProps {
       recommendedRestockQty: number;
       urgency: string;
     }>;
+    windowDays: number;
+    supplierFilter: string;
   };
   pharmacies: Array<{ id: string; name: string; location: string; contact: string }>;
   reports: Array<{
@@ -64,6 +66,7 @@ export default function DistributorDashboardClient({
     () => insights.topMedicines.filter((m) => supplierFilter === "all" || m.supplier === supplierFilter),
     [insights.topMedicines, supplierFilter]
   );
+  const [windowDays, setWindowDays] = useState(String(insights.windowDays));
 
   async function generateAlerts() {
     setIsGenerating(true);
@@ -79,6 +82,37 @@ export default function DistributorDashboardClient({
 
   return (
     <div className="space-y-8">
+      <form method="GET" className="rounded-2xl border bg-white p-4 flex flex-wrap items-end gap-3">
+        <div>
+          <label className="block text-xs text-slate-500 mb-1">Window</label>
+          <select
+            name="days"
+            value={windowDays}
+            onChange={(e) => setWindowDays(e.target.value)}
+            className="border rounded-lg px-3 py-2 text-sm"
+          >
+            <option value="7">7 days</option>
+            <option value="30">30 days</option>
+            <option value="90">90 days</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs text-slate-500 mb-1">Supplier</label>
+          <select
+            name="supplier"
+            defaultValue={insights.supplierFilter}
+            className="border rounded-lg px-3 py-2 text-sm"
+          >
+            {suppliers.map((s) => (
+              <option key={s} value={s}>
+                {s === "all" ? "All suppliers" : s}
+              </option>
+            ))}
+          </select>
+        </div>
+        <button className="bg-slate-900 text-white rounded-lg px-3 py-2 text-sm font-bold">Apply Filters</button>
+      </form>
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="rounded-2xl border bg-white p-5"><p className="text-xs text-slate-500">Total Pharmacies</p><p className="text-3xl font-black">{insights.totalPharmacies}</p></div>
         <div className="rounded-2xl border bg-white p-5"><p className="text-xs text-slate-500">Total Orders</p><p className="text-3xl font-black">{insights.totalOrders}</p></div>

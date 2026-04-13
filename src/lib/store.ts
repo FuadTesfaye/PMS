@@ -264,30 +264,46 @@ export async function deleteMedicine(id: string) {
   return true;
 }
 
-export async function getDistributorInsights() {
+export async function getDistributorInsights(options?: { days?: number; supplier?: string }) {
+  const days = options?.days ?? 30;
+  const supplier = options?.supplier;
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - days);
+
+  const medicineWhere = supplier ? { supplier } : undefined;
+  const orderDateWhere = { gte: startDate };
+
   const [totalPharmacies, totalOrders, topMedicines, lowStockAlerts, pharmacyDemand, prescriptionItems] = await Promise.all([
     prisma.pharmacy.count(),
-    prisma.order.count(),
+    prisma.order.count({ where: { createdAt: orderDateWhere } }),
     prisma.orderItem.groupBy({
       by: ["medicineId"],
+      where: {
+        order: { createdAt: orderDateWhere },
+        medicine: medicineWhere,
+      },
       _sum: { quantity: true },
       orderBy: { _sum: { quantity: "desc" } },
       take: 5,
     }),
     prisma.medicine.findMany({
-      where: { stock: { lt: 10 } },
+      where: { stock: { lt: 10 }, ...(medicineWhere ?? {}) },
       take: 10,
       orderBy: { stock: "asc" },
     }),
     prisma.order.groupBy({
       by: ["pharmacyId"],
+      where: { createdAt: orderDateWhere },
       _count: { id: true },
       _sum: { total: true },
       orderBy: { _count: { id: "desc" } },
       take: 10,
     }),
     prisma.orderItem.findMany({
-      where: { order: { prescription: { isNot: null } } },
+      where: {
+        order: { prescription: { isNot: null }, createdAt: orderDateWhere },
+        medicine: medicineWhere,
+      },
       select: { medicineId: true, quantity: true },
     }),
   ]);
@@ -328,6 +344,8 @@ export async function getDistributorInsights() {
   }));
 
   return {
+    windowDays: days,
+    supplierFilter: supplier ?? "all",
     totalPharmacies,
     totalOrders,
     topMedicines: topMedicines.map((m) => ({
@@ -419,6 +437,45 @@ export async function generateLowStockAlerts(threshold = 10) {
             title: "Low stock risk detected",
             message: `${med.name} stock is ${med.stock}. Recommended restock immediately.`,
             severity: med.stock < 5 ? "critical" : "high",
+          },
+        });
+        generated.push(created.id);
+      }
+    }
+  }
+
+  return generated;
+}
+
+export async function generateComplianceExpiryAlerts(daysAhead = 30) {
+  const endDate = new Date();
+  endDate.setDate(endDate.getDate() + daysAhead);
+  const records = await prisma.complianceRecord.findMany({
+    where: { expiryDate: { lte: endDate } },
+    include: { medicine: true },
+  });
+  const pharmacies = await prisma.pharmacy.findMany({ select: { id: true } });
+  const generated: string[] = [];
+
+  for (const record of records) {
+    for (const pharmacy of pharmacies) {
+      const existing = await prisma.alert.findFirst({
+        where: {
+          pharmacyId: pharmacy.id,
+          medicineId: record.medicineId,
+          type: "compliance_expiry",
+          isResolved: false,
+        },
+      });
+      if (!existing) {
+        const created = await prisma.alert.create({
+          data: {
+            pharmacyId: pharmacy.id,
+            medicineId: record.medicineId,
+            type: "compliance_expiry",
+            title: "Compliance expiry risk",
+            message: `${record.medicine.name} registration/expiry requires review before ${record.expiryDate.toISOString().slice(0, 10)}.`,
+            severity: "high",
           },
         });
         generated.push(created.id);
