@@ -414,12 +414,14 @@ export async function getOpenAlerts() {
 }
 
 export async function generateLowStockAlerts(threshold = 10) {
-  const medicines = await prisma.medicine.findMany({ where: { stock: { lt: threshold } } });
+  const medicines = await prisma.medicine.findMany({ where: { stock: { lt: Math.max(1, threshold) } } });
   const pharmacies = await prisma.pharmacy.findMany({ select: { id: true } });
   const generated: string[] = [];
 
-  for (const med of medicines) {
-    for (const pharmacy of pharmacies) {
+  for (const pharmacy of pharmacies) {
+    const thresholds = await getEffectiveThresholds(pharmacy.id);
+    for (const med of medicines) {
+      if (med.stock >= thresholds.lowStock) continue;
       const existing = await prisma.alert.findFirst({
         where: {
           pharmacyId: pharmacy.id,
@@ -436,7 +438,7 @@ export async function generateLowStockAlerts(threshold = 10) {
             type: "low_stock",
             title: "Low stock risk detected",
             message: `${med.name} stock is ${med.stock}. Recommended restock immediately.`,
-            severity: med.stock < 5 ? "critical" : "high",
+            severity: med.stock < Math.max(1, Math.floor(thresholds.lowStock / 2)) ? "critical" : "high",
           },
         });
         generated.push(created.id);
@@ -448,17 +450,18 @@ export async function generateLowStockAlerts(threshold = 10) {
 }
 
 export async function generateComplianceExpiryAlerts(daysAhead = 30) {
-  const endDate = new Date();
-  endDate.setDate(endDate.getDate() + daysAhead);
-  const records = await prisma.complianceRecord.findMany({
-    where: { expiryDate: { lte: endDate } },
-    include: { medicine: true },
-  });
   const pharmacies = await prisma.pharmacy.findMany({ select: { id: true } });
   const generated: string[] = [];
 
-  for (const record of records) {
-    for (const pharmacy of pharmacies) {
+  for (const pharmacy of pharmacies) {
+    const thresholds = await getEffectiveThresholds(pharmacy.id);
+    const endDate = new Date();
+    endDate.setDate(endDate.getDate() + (Number.isFinite(thresholds.complianceDays) ? thresholds.complianceDays : daysAhead));
+    const records = await prisma.complianceRecord.findMany({
+      where: { expiryDate: { lte: endDate } },
+      include: { medicine: true },
+    });
+    for (const record of records) {
       const existing = await prisma.alert.findFirst({
         where: {
           pharmacyId: pharmacy.id,
@@ -536,6 +539,39 @@ export async function getSystemSettingValue<T = string>(key: string, fallback: T
   } catch {
     return (setting.value as unknown as T) ?? fallback;
   }
+}
+
+export async function upsertPharmacySetting(params: {
+  pharmacyId: string;
+  key: string;
+  value: string;
+  description: string;
+}) {
+  return prisma.pharmacySetting.upsert({
+    where: { pharmacyId_key: { pharmacyId: params.pharmacyId, key: params.key } },
+    update: { value: params.value, description: params.description },
+    create: params,
+  });
+}
+
+export async function getPharmacySettings(pharmacyId: string) {
+  return prisma.pharmacySetting.findMany({
+    where: { pharmacyId },
+    orderBy: { key: "asc" },
+  });
+}
+
+export async function getEffectiveThresholds(pharmacyId: string) {
+  const [globalLowStock, globalComplianceDays, pharmacySettings] = await Promise.all([
+    getSystemSettingValue("threshold.low_stock", "10"),
+    getSystemSettingValue("threshold.compliance_expiry_days", "30"),
+    getPharmacySettings(pharmacyId),
+  ]);
+  const map = new Map(pharmacySettings.map((s) => [s.key, s.value]));
+  return {
+    lowStock: Number(map.get("threshold.low_stock") ?? globalLowStock),
+    complianceDays: Number(map.get("threshold.compliance_expiry_days") ?? globalComplianceDays),
+  };
 }
 
 export async function getApiClientByHash(keyHash: string) {

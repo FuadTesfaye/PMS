@@ -76,6 +76,7 @@ model Pharmacy {
   reports    FieldReport[]
   scores     PharmacyScore[]
   alerts     Alert[]
+  settings   PharmacySetting[]
 }
 
 model Medicine {
@@ -242,4 +243,18 @@ model ApiClient {
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   lastUsedAt  DateTime?
+}
+
+model PharmacySetting {
+  id          String   @id @default(cuid())
+  pharmacyId  String
+  key         String
+  value       String
+  description String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  pharmacy    Pharmacy @relation(fields: [pharmacyId], references: [id], onDelete: Cascade)
+
+  @@unique([pharmacyId, key])
+  @@index([pharmacyId, key])
 }

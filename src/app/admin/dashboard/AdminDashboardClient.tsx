@@ -20,7 +20,7 @@ import { cn, formatCurrency } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { addMedicineAction, updateMedicineAction, deleteMedicineAction } from '@/app/actions/medicines';
 import { upsertPharmacyScoreAction, updateComplianceRecordAction } from '@/app/actions/compliance';
-import { saveSystemSettingAction } from '@/app/actions/settings';
+import { savePharmacySettingAction, saveSystemSettingAction } from '@/app/actions/settings';
 import Image from "next/image";
 
 interface AdminDashboardProps {
@@ -175,6 +175,11 @@ export default function AdminDashboardClient({
 
   const handleSettingSubmit = async (formData: FormData) => {
     await saveSystemSettingAction(formData);
+    window.location.reload();
+  };
+
+  const handlePharmacySettingSubmit = async (formData: FormData) => {
+    await savePharmacySettingAction(formData);
     window.location.reload();
   };
 
@@ -415,6 +420,41 @@ export default function AdminDashboardClient({
                   );
                 })}
               </div>
+            </div>
+
+            <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6">
+              <h3 className="text-lg font-black mb-4">Per-Pharmacy Overrides</h3>
+              <form action={handlePharmacySettingSubmit} className="space-y-2">
+                <select name="pharmacyId" className="w-full border rounded px-2 py-2 text-sm" required>
+                  <option value="">Select pharmacy</option>
+                  {pharmacies.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+                <select name="key" className="w-full border rounded px-2 py-2 text-sm" required>
+                  <option value="threshold.low_stock">Low stock threshold</option>
+                  <option value="threshold.compliance_expiry_days">Compliance expiry days</option>
+                </select>
+                <input
+                  name="value"
+                  type="number"
+                  min={1}
+                  className="w-full border rounded px-2 py-2 text-sm"
+                  placeholder="Override value"
+                  required
+                />
+                <input
+                  name="description"
+                  className="w-full border rounded px-2 py-2 text-sm"
+                  defaultValue="Per-pharmacy threshold override"
+                  required
+                />
+                <button className="w-full bg-indigo-600 text-white rounded py-2 text-sm font-bold">
+                  Save Pharmacy Override
+                </button>
+              </form>
             </div>
           </div>
         </div>
