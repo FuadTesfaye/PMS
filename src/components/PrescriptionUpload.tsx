@@ -4,6 +4,7 @@ import { useState, useRef } from 'react';
 import { Upload, X, FileText, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import Image from "next/image";
 
 interface PrescriptionUploadProps {
   onUpload: (base64: string | null) => void;
@@ -97,10 +98,12 @@ export default function PrescriptionUpload({ onUpload, required = false }: Presc
             className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-sm"
           >
             <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-slate-100">
-              <img 
-                src={preview} 
-                alt="Prescription preview" 
-                className="h-full w-full object-contain"
+              <Image
+                src={preview}
+                alt="Prescription preview"
+                fill
+                unoptimized
+                className="object-contain"
               />
               <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
                 <button 

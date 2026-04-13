@@ -4,6 +4,7 @@ import { Medicine } from '@/types';
 import { ShoppingCart, AlertCircle, Plus } from 'lucide-react';
 import { cn, formatCurrency } from '@/lib/utils';
 import { motion } from 'framer-motion';
+import Image from "next/image";
 
 interface MedicineCardProps {
   medicine: Medicine;
@@ -22,10 +23,12 @@ export default function MedicineCard({ medicine, onAddToCart, isInCart }: Medici
       className="group relative flex flex-col overflow-hidden rounded-2xl bg-white border border-slate-200 shadow-sm transition-all hover:shadow-md h-full"
     >
       <div className="relative aspect-square overflow-hidden bg-slate-100">
-        <img
-          src={medicine.image}
+        <Image
+          src={medicine.image || ""}
           alt={medicine.name}
-          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+          fill
+          sizes="(max-width: 768px) 100vw, 25vw"
+          className="object-cover transition-transform duration-500 group-hover:scale-110"
         />
         {medicine.requiresPrescription && (
           <div className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-amber-100 px-2 py-1 text-[10px] font-bold text-amber-700 shadow-sm ring-1 ring-amber-700/10">

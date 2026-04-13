@@ -132,6 +132,18 @@ async function main() {
       },
     });
   }
+
+  await prisma.pharmacyScore.upsert({
+    where: { id: "score-pharmacy-hq-1" },
+    update: { score: 82, riskLevel: "low", pharmacyId: pharmacyA.id },
+    create: { id: "score-pharmacy-hq-1", pharmacyId: pharmacyA.id, score: 82, riskLevel: "low" },
+  });
+
+  await prisma.pharmacyScore.upsert({
+    where: { id: "score-pharmacy-hq-2" },
+    update: { score: 61, riskLevel: "medium", pharmacyId: "pharmacy-hq-2" },
+    create: { id: "score-pharmacy-hq-2", pharmacyId: "pharmacy-hq-2", score: 61, riskLevel: "medium" },
+  });
 }
 
 main()

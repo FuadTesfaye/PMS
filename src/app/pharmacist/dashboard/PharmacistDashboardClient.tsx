@@ -16,6 +16,7 @@ import {
 import { cn, formatCurrency } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { updateOrderAction } from '@/app/actions/orders';
+import Image from "next/image";
 
 interface PharmacistDashboardProps {
   initialOrders: Order[];
@@ -258,9 +259,12 @@ export default function PharmacistDashboardClient({ initialOrders }: PharmacistD
                       <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Prescription Verification</h4>
                       {selectedOrder.prescriptionImage ? (
                         <div className="group relative rounded-3xl border border-slate-200 overflow-hidden shadow-2xl">
-                          <img 
-                            src={selectedOrder.prescriptionImage} 
-                            alt="Prescription" 
+                          <Image
+                            src={selectedOrder.prescriptionImage}
+                            alt="Prescription"
+                            width={900}
+                            height={500}
+                            unoptimized
                             className="w-full h-auto object-contain bg-slate-100 min-h-[300px]"
                           />
                           <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-slate-900/80 to-transparent">

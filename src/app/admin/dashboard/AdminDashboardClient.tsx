@@ -19,6 +19,8 @@ import {
 import { cn, formatCurrency } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { addMedicineAction, updateMedicineAction, deleteMedicineAction } from '@/app/actions/medicines';
+import { upsertPharmacyScoreAction, updateComplianceRecordAction } from '@/app/actions/compliance';
+import Image from "next/image";
 
 interface AdminDashboardProps {
   initialMedicines: Medicine[];
@@ -30,9 +32,34 @@ interface AdminDashboardProps {
     totalOrders: number;
     totalMedicines: number;
   };
+  complianceRecords: Array<{
+    id: string;
+    medicineId: string;
+    status: string;
+    expiryDate: Date;
+    registrationStatus: string;
+    notes: string;
+    medicine: { name: string };
+  }>;
+  pharmacyScores: Array<{
+    id: string;
+    pharmacyId: string;
+    score: number;
+    riskLevel: "low" | "medium" | "high";
+    lastUpdated: Date;
+    pharmacy: { name: string };
+  }>;
+  pharmacies: Array<{ id: string; name: string }>;
 }
 
-export default function AdminDashboardClient({ initialMedicines, initialOrders, stats }: AdminDashboardProps) {
+export default function AdminDashboardClient({
+  initialMedicines,
+  initialOrders,
+  stats,
+  complianceRecords,
+  pharmacyScores,
+  pharmacies,
+}: AdminDashboardProps) {
   const [medicines, setMedicines] = useState<Medicine[]>(initialMedicines);
   const [orders] = useState<Order[]>(initialOrders);
   const [isAddingMed, setIsAddingMed] = useState(false);
@@ -133,6 +160,16 @@ export default function AdminDashboardClient({ initialMedicines, initialOrders, 
     }
   };
 
+  const handleScoreSubmit = async (formData: FormData) => {
+    await upsertPharmacyScoreAction(formData);
+    window.location.reload();
+  };
+
+  const handleComplianceSubmit = async (formData: FormData) => {
+    await updateComplianceRecordAction(formData);
+    window.location.reload();
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 pt-20 pb-12">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -213,7 +250,7 @@ export default function AdminDashboardClient({ initialMedicines, initialOrders, 
                       <td className="px-8 py-5">
                          <div className="flex items-center gap-3">
                             <div className="h-10 w-10 rounded-xl overflow-hidden border border-slate-100 shrink-0">
-                               <img src={med.image} alt="" className="h-full w-full object-cover" />
+                               <Image src={med.image || ""} alt={med.name} width={40} height={40} className="h-full w-full object-cover" />
                             </div>
                             <div>
                                <p className="font-bold text-slate-900 text-sm">{med.name}</p>
@@ -288,6 +325,60 @@ export default function AdminDashboardClient({ initialMedicines, initialOrders, 
                  <p className="text-emerald-100 text-sm mt-1">Pharmacy revenue is up 24% from last month. Keep up the great work!</p>
                </div>
                <div className="absolute top-0 right-0 h-32 w-32 bg-white/10 rounded-full -translate-y-12 translate-x-12 blur-3xl" />
+            </div>
+
+            <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6">
+              <h3 className="text-lg font-black mb-4">Compliance Snapshot</h3>
+              <div className="space-y-3">
+                {complianceRecords.slice(0, 4).map((record) => (
+                  <form key={record.id} action={handleComplianceSubmit} className="p-3 rounded-xl border border-slate-100 space-y-2">
+                    <input type="hidden" name="id" value={record.id} />
+                    <p className="text-sm font-bold">{record.medicine.name}</p>
+                    <select name="status" defaultValue={record.status} className="w-full text-xs rounded-lg border p-2">
+                      <option value="valid">valid</option>
+                      <option value="warning">warning</option>
+                      <option value="expired">expired</option>
+                    </select>
+                    <select name="registrationStatus" defaultValue={record.registrationStatus} className="w-full text-xs rounded-lg border p-2">
+                      <option value="registered">registered</option>
+                      <option value="pending">pending</option>
+                      <option value="suspended">suspended</option>
+                    </select>
+                    <input type="date" name="expiryDate" defaultValue={new Date(record.expiryDate).toISOString().slice(0, 10)} className="w-full text-xs rounded-lg border p-2" />
+                    <input name="notes" defaultValue={record.notes} className="w-full text-xs rounded-lg border p-2" />
+                    <button className="text-xs font-bold text-indigo-600">Save Compliance</button>
+                  </form>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6">
+              <h3 className="text-lg font-black mb-4">Pharmacy Risk Scores</h3>
+              <form action={handleScoreSubmit} className="space-y-2 mb-4">
+                <select name="pharmacyId" className="w-full rounded-lg border p-2 text-sm" required>
+                  <option value="">Select pharmacy</option>
+                  {pharmacies.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+                <input name="score" type="number" min={0} max={100} placeholder="Score (0-100)" className="w-full rounded-lg border p-2 text-sm" required />
+                <select name="riskLevel" className="w-full rounded-lg border p-2 text-sm" required>
+                  <option value="low">low</option>
+                  <option value="medium">medium</option>
+                  <option value="high">high</option>
+                </select>
+                <button className="w-full bg-slate-900 text-white rounded-lg py-2 text-sm font-bold">Save Score</button>
+              </form>
+              <div className="space-y-2">
+                {pharmacyScores.slice(0, 5).map((s) => (
+                  <div key={s.id} className="text-xs flex justify-between border-b pb-1">
+                    <span>{s.pharmacy.name}</span>
+                    <span className={cn("font-bold", s.riskLevel === "high" ? "text-rose-600" : s.riskLevel === "medium" ? "text-amber-600" : "text-emerald-600")}>
+                      {s.score} ({s.riskLevel})
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>

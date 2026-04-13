@@ -8,6 +8,7 @@ import { motion } from 'framer-motion';
 import PrescriptionUpload from './PrescriptionUpload';
 import { placeOrder } from '@/app/actions/orders';
 import { useRouter } from 'next/navigation';
+import Image from "next/image";
 
 interface CartProps {
   items: (Medicine & { quantity: number })[];
@@ -103,7 +104,7 @@ export default function Cart({ items, onUpdateQuantity, onRemove, onClear, onClo
                 className="flex items-center gap-4 rounded-2xl border border-slate-100 p-3 hover:border-emerald-100 hover:bg-emerald-50/20 transition-all"
               >
                 <div className="h-20 w-20 overflow-hidden rounded-xl bg-slate-50 border border-slate-100">
-                  <img src={item.image} alt={item.name} className="h-full w-full object-cover" />
+                  <Image src={item.image || ""} alt={item.name} width={80} height={80} className="h-full w-full object-cover" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="font-bold text-slate-900 truncate text-sm">{item.name}</h3>
