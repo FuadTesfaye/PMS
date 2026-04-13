@@ -1,29 +1,31 @@
-import { getMedicines, getOrdersByUser } from '@/lib/store';
+import { getMedicines, getOrders, getStatistics } from '@/lib/store';
 import { getSession } from '@/lib/auth';
-import CustomerDashboardClient from './CustomerDashboardClient';
+import AdminDashboardClient from './AdminDashboardClient';
 import DashboardLayout from '@/components/DashboardLayout';
 import { redirect } from 'next/navigation';
 
 export const metadata = {
-  title: 'Dashboard | Customer - PharmaCare',
-  description: 'Browse medicines and manage your health orders.',
+  title: 'Dashboard | Admin - PharmaCare',
+  description: 'Manage inventory and view pharmacy reports.',
 };
 
-export default async function CustomerDashboardPage() {
+export default async function AdminDashboardPage() {
   const session = await getSession();
   
-  if (!session || session.role !== 'customer') {
+  if (!session || session.role !== 'admin') {
     redirect('/login');
   }
 
   const medicines = getMedicines();
-  const orders = getOrdersByUser(session.id);
+  const orders = getOrders();
+  const stats = getStatistics();
 
   return (
     <DashboardLayout user={{ name: session.name, role: session.role }}>
-      <CustomerDashboardClient 
+      <AdminDashboardClient 
         initialMedicines={medicines} 
         initialOrders={orders} 
+        stats={stats}
       />
     </DashboardLayout>
   );

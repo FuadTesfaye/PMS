@@ -24,22 +24,16 @@ interface SidebarProps {
 }
 
 const customerLinks = [
-  { href: '/customer/dashboard', label: 'Medicines', icon: Pill },
-  { href: '/customer/cart', label: 'My Cart', icon: ShoppingCart },
-  { href: '/customer/orders', label: 'Order History', icon: History },
+  { href: '/customer/dashboard', label: 'Shop Medicines', icon: Pill },
+  { href: '/customer/dashboard?tab=orders', label: 'My Orders', icon: History },
 ];
 
 const pharmacistLinks = [
   { href: '/pharmacist/dashboard', label: 'Review Queue', icon: FileText },
-  { href: '/pharmacist/inventory', label: 'Inventory', icon: Package },
 ];
 
 const adminLinks = [
   { href: '/admin/dashboard', label: 'Overview', icon: LayoutDashboard },
-  { href: '/admin/inventory', label: 'Manage Inventory', icon: Package },
-  { href: '/admin/orders', label: 'All Orders', icon: History },
-  { href: '/admin/reports', label: 'Reports', icon: BarChart3 },
-  { href: '/admin/users', label: 'Users', icon: Users },
 ];
 
 export default function Sidebar({ role, isOpen, onClose }: SidebarProps) {

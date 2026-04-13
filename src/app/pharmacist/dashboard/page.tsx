@@ -1,6 +1,7 @@
 import { getOrders } from '@/lib/store';
 import { getSession } from '@/lib/auth';
 import PharmacistDashboardClient from './PharmacistDashboardClient';
+import DashboardLayout from '@/components/DashboardLayout';
 import { redirect } from 'next/navigation';
 
 export const metadata = {
@@ -18,8 +19,10 @@ export default async function PharmacistDashboardPage() {
   const orders = getOrders();
 
   return (
-    <PharmacistDashboardClient 
-      initialOrders={orders} 
-    />
+    <DashboardLayout user={{ name: session.name, role: session.role }}>
+      <PharmacistDashboardClient 
+        initialOrders={orders} 
+      />
+    </DashboardLayout>
   );
 }
